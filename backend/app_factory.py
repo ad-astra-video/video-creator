@@ -28,9 +28,11 @@ from _routes.retake import router as retake_router
 from _routes.extend import router as extend_router
 from _routes.runtime_policy import router as runtime_policy_router
 from _routes.settings import router as settings_router
+from _routes.providers import router as providers_router
 from api_types import HTTPErrorResponse
 from logging_policy import log_http_error, log_unhandled_exception
 from state import init_state_service
+from pathlib import Path
 
 if TYPE_CHECKING:
     from app_handler import AppHandler
@@ -167,5 +169,28 @@ def create_app(
     app.include_router(prompt_enhancement_router)
     app.include_router(runtime_policy_router)
     app.include_router(hf_auth_router)
+    app.include_router(providers_router)
+
+    # Initialize Livepeer client when remote inference is configured
+    settings = handler.settings.get_settings_snapshot()
+    if settings.remote_inference_enabled and settings.livepeer_signer_url:
+        from services.livepeer_client import LivepeerClient
+        results_dir = Path(handler.config.outputs_dir) / "livepeer"
+        client = LivepeerClient(
+            signer_url=settings.livepeer_signer_url,
+            results_dir=results_dir,
+        )
+        # Store on handler state so generation handlers can access it
+        handler.state._livepeer_client = client  # type: ignore[attr-defined]
+
+    @app.on_event("startup")
+    async def _startup() -> None:
+        client = getattr(handler.state, "_livepeer_client", None)
+        if client:
+            await client.discover()
+            import asyncio
+            app.state.livepeer_task = asyncio.create_task(  # type: ignore[attr-defined]
+                client.periodic_discovery(interval_s=60),
+            )
 
     return app

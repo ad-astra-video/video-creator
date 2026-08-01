@@ -86,6 +86,10 @@ class VideoGenerationHandler(StateHandlerBase):
         return build_generate_video_model_specs_response()
 
     def generate(self, req: GenerateVideoRequest) -> GenerateVideoResponse:
+        # Check remote inference first
+        if self.state.app_settings.remote_inference_enabled:
+            return self._generate_via_livepeer(req)
+
         use_api_specs = should_video_generate_with_ltx_api(
             force_api_generations=self.config.force_api_generations,
             settings=self.state.app_settings,
@@ -179,6 +183,87 @@ class VideoGenerationHandler(StateHandlerBase):
             return [(str(resolve_lora_ref(self.models_dir, e.ref)), e.scale) for e in loras]
         except ValueError as exc:
             raise HTTPError(400, str(exc)) from exc
+
+    def _generate_via_livepeer(self, req: GenerateVideoRequest) -> GenerateVideoResponse:
+        """Route generation to a remote runner via Livepeer."""
+        import asyncio
+        import base64
+
+        client = getattr(self.state, "_livepeer_client", None)
+        if client is None:
+            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+
+        settings = self.state.app_settings
+        runner = client.get_runner(
+            settings.livepeer_selected_runner_id,
+            settings.livepeer_excluded_runner_ids,
+        )
+        if runner is None:
+            raise HTTPError(422, "No available remote runner — run discovery or select a provider")
+
+        # Resolution mapping
+        res_map = {"540p": (960, 544), "720p": (1280, 704), "1080p": (1920, 1088)}
+        w, h = res_map.get(req.resolution, (1920, 1088))
+        if req.aspectRatio == "9:16":
+            w, h = h, w
+        w = round(w / 64) * 64
+        h = round(h / 64) * 64
+        num_frames = self._compute_num_frames(req.duration, req.fps)
+
+        # Build payload
+        is_i2v = req.imagePath is not None and req.imagePath != ""
+        if is_i2v:
+            image_path = normalize_optional_path(req.imagePath)
+            image_data = Path(image_path).read_bytes() if image_path else b""
+            image_b64 = base64.b64encode(image_data).decode() if image_data else None
+
+        runner_payload = {
+            "prompt": req.prompt,
+            "seed": req.seed if req.seed is not None else self._resolve_seed(),
+            "resolution": req.resolution,
+            "fps": req.fps,
+            "duration": req.duration,
+            "aspectRatio": req.aspectRatio,
+        }
+        if is_i2v and image_b64:
+            runner_payload["image_base64"] = image_b64
+
+        gen_mode = "/i2v" if is_i2v else "/t2v"
+        endpoint = f"/ltx-desktop/v1{gen_mode}"
+
+        # Start generation tracking
+        generation_id = self._make_generation_id()
+        with self._generation.reserved_generation_start():
+            try:
+                self._generation.start_generation(generation_id)
+                self._generation.update_progress("sending_to_remote", 10, 0, 8)
+
+                # Call remote runner (async)
+                try:
+                    result = asyncio.run(client.call(runner, endpoint, runner_payload, timeout_s=600))
+                except Exception as exc:
+                    self._generation.fail_generation(str(exc))
+                    raise HTTPError(500, f"Remote runner failed: {exc}") from exc
+
+                self._generation.update_progress("downloading_result", 90, 0, 8)
+
+                # Save the result
+                if "video_base64" in result:
+                    output_path = client.save_result(result["video_base64"], result.get("content_type", "video/mp4"))
+                else:
+                    raise HTTPError(500, "Runner returned unexpected response")
+
+                self._generation.complete_generation(output_path)
+                self._generation.update_progress("complete", 100, 8, 8)
+                return GenerateVideoCompleteResponse(status="complete", video_path=output_path)
+
+            except HTTPError:
+                raise
+            except Exception as e:
+                self._generation.fail_generation(str(e))
+                if "cancelled" in str(e).lower():
+                    return GenerateVideoCancelledResponse(status="cancelled")
+                raise HTTPError(500, str(e)) from e
 
     def generate_video(
         self,

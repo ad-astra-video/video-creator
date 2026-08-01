@@ -422,6 +422,50 @@ export class ApiClient {
     const path = `/api/loras/download/progress${buildQueryString(query as Record<string, unknown>)}`
     return requestEndpointResult('/api/loras/download/progress', 'get', [] as const, undefined, path)
   }
+
+  // ── Provider management (new endpoints) ──────────────────────
+
+  static async getProviders(): Promise<{
+    ok: true
+    data: { providers: Array<{ runner_id: string; url: string; gpu: { name?: string; vram_mb?: number }; price_info?: { price: number; currency: string; unit: string } | null; selected: boolean; excluded: boolean; status: string }>; total: number; online: number }
+  } | { ok: false; status: '5XX'; error: any }> {
+    const result = await backendFetch('/api/providers', { method: 'GET' })
+    if (result.ok) {
+      const data = await result.json()
+      return { ok: true, data }
+    }
+    return { ok: false, status: '5XX', error: result.status }
+  }
+
+  static async discoverProviders(): Promise<{
+    ok: true
+    data: { providers?: Array<any>; total?: number; error?: string }
+  } | { ok: false; status: '5XX'; error: any }> {
+    const result = await backendFetch('/api/providers/discover', { method: 'POST' })
+    if (result.ok) {
+      const data = await result.json()
+      return { ok: true, data }
+    }
+    return { ok: false, status: '5XX', error: result.status }
+  }
+
+  static async selectProvider(runnerId: string): Promise<{ ok: true; data: { ok: boolean; runner_id: string } } | { ok: false; status: '5XX'; error: any }> {
+    const result = await backendFetch('/api/providers/select', { method: 'POST', body: JSON.stringify({ runner_id: runnerId }) })
+    if (result.ok) {
+      const data = await result.json()
+      return { ok: true, data }
+    }
+    return { ok: false, status: '5XX', error: result.status }
+  }
+
+  static async excludeProvider(runnerId: string): Promise<{ ok: true; data: { ok: boolean } } | { ok: false; status: '5XX'; error: any }> {
+    const result = await backendFetch('/api/providers/exclude', { method: 'POST', body: JSON.stringify({ runner_id: runnerId }) })
+    if (result.ok) {
+      const data = await result.json()
+      return { ok: true, data }
+    }
+    return { ok: false, status: '5XX', error: result.status }
+  }
 }
 
 type ApiClientMethodName = keyof typeof ApiClient

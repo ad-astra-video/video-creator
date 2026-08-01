@@ -68,6 +68,11 @@ class AppSettings(SettingsBaseModel):
     locked_seed: int = 42
     models_dir: str = ""
     active_ltx_model_id: LTXLocalModelId | None = None
+    # Remote inference via Livepeer
+    remote_inference_enabled: bool = False
+    livepeer_signer_url: str = ""
+    livepeer_selected_runner_id: str = ""
+    livepeer_excluded_runner_ids: list[str] = Field(default_factory=list)
 
     @field_validator("prompt_cache_size", mode="before")
     @classmethod
@@ -141,6 +146,11 @@ class SettingsResponse(SettingsBaseModel):
     locked_seed: int = 42
     models_dir: str = ""
     active_ltx_model_id: LTXLocalModelId | None = None
+    # Remote inference
+    remote_inference_enabled: bool = False
+    has_livepeer_signer_url: bool = False
+    livepeer_selected_runner_id: str = ""
+    livepeer_excluded_runner_ids: list[str] = Field(default_factory=list)
 
 
 def to_settings_response(settings: AppSettings) -> SettingsResponse:
@@ -148,9 +158,11 @@ def to_settings_response(settings: AppSettings) -> SettingsResponse:
     ltx_key = data.pop("ltx_api_key", "")
     fal_key = data.pop("fal_api_key", "")
     gemini_key = data.pop("gemini_api_key", "")
+    signer = data.pop("livepeer_signer_url", "")
     data["has_ltx_api_key"] = bool(ltx_key)
     data["has_fal_api_key"] = bool(fal_key)
     data["has_gemini_api_key"] = bool(gemini_key)
+    data["has_livepeer_signer_url"] = bool(signer)
     # models_dir passes through as-is (not secret)
     return SettingsResponse.model_validate(data)
 

@@ -339,6 +339,20 @@ export async function startPythonBackend(): Promise<void> {
         LTX_LOG_FILE: getCurrentLogFilename(),
         LTX_APP_DATA_DIR: getAppDataDir(),
         LTX_DEV_MODE: isDev ? '1' : '0',
+        // Remote inference: read from settings file so the backend can detect it early
+        ...(() => {
+          try {
+            const settingsPath = path.join(getAppDataDir(), 'settings.json')
+            if (fs.existsSync(settingsPath)) {
+              const s = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
+              return {
+                LTX_REMOTE_INFERENCE: s.remote_inference_enabled ? '1' : '0',
+                LTX_LIVEPEER_SIGNER: s.livepeer_signer_url || '',
+              }
+            }
+          } catch { /* ignore */ }
+          return { LTX_REMOTE_INFERENCE: '0', LTX_LIVEPEER_SIGNER: '' }
+        })(),
         // Bundled prebuilt mps-sdpa zero-copy extension cache (macOS). Lives inside
         // python-embed (→ resources/python) so it rides the CI python-embed cache. The
         // backend direct-imports the .so from here (mps_prebuilt_ext.py), no copy step;
