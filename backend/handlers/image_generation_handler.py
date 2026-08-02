@@ -51,6 +51,10 @@ class ImageGenerationHandler(StateHandlerBase):
         self._zit_api_client = zit_api_client
 
     def generate(self, req: GenerateImageRequest) -> GenerateImageResponse:
+        # Remote inference via Livepeer
+        if self.state.app_settings.remote_inference_enabled:
+            return self._generate_via_livepeer(req)
+
         with self._generation.reserved_generation_start():
 
             width = (req.width // 16) * 16
@@ -250,6 +254,64 @@ class ImageGenerationHandler(StateHandlerBase):
             source = raw.convert("RGB")
         target_w, target_h = compute_edit_dimensions(source.width, source.height)
         return source.resize((target_w, target_h), PILImage.Resampling.LANCZOS)
+
+
+    def _generate_via_livepeer(self, req: GenerateImageRequest) -> GenerateImageResponse:
+        """Route image generation to a remote runner via Livepeer."""
+        import asyncio
+
+        client = getattr(self.state, "_livepeer_client", None)
+        if client is None:
+            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+
+        settings = self.state.app_settings
+        runner = client.get_runner(
+            settings.livepeer_selected_runner_id,
+            settings.livepeer_excluded_runner_ids,
+        )
+        if runner is None:
+            raise HTTPError(422, "No available remote runner — run discovery or select a provider")
+
+        width = (req.width // 16) * 16
+        height = (req.height // 16) * 16
+
+        runner_payload = {
+            "prompt": req.prompt,
+            "width": width,
+            "height": height,
+            "numSteps": req.numSteps,
+            "seed": self._resolve_seed(),
+        }
+
+        with self._generation.reserved_generation_start():
+            generation_id = uuid.uuid4().hex[:8]
+            try:
+                self._generation.start_api_generation(generation_id)
+                self._generation.update_progress("sending_to_remote", 10, None, None)
+
+                try:
+                    result = asyncio.run(client.call(runner, "/ltx-desktop/v1/image", runner_payload, timeout_s=300))
+                except Exception as exc:
+                    self._generation.fail_generation(str(exc))
+                    raise HTTPError(500, f"Remote runner failed: {exc}") from exc
+
+                self._generation.update_progress("downloading_result", 90, None, None)
+
+                if "image_base64" in result:
+                    output_path = client.save_result(result["image_base64"], result.get("content_type", "image/png"))
+                else:
+                    raise HTTPError(500, "Runner returned unexpected response")
+
+                self._generation.update_progress("complete", 100, None, None)
+                self._generation.complete_generation([output_path])
+                return GenerateImageCompleteResponse(status="complete", image_paths=[output_path])
+            except HTTPError:
+                raise
+            except Exception as exc:
+                self._generation.fail_generation(str(exc))
+                if "cancelled" in str(exc).lower():
+                    return GenerateImageCancelledResponse(status="cancelled")
+                raise HTTPError(500, str(exc)) from exc
 
     def _edit_via_api(
         self,

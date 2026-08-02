@@ -63,6 +63,16 @@ class RetakeHandler(StateHandlerBase):
 
         video_file = validate_source_video_path(video_path)
 
+        # Remote inference via Livepeer
+        if self.state.app_settings.remote_inference_enabled:
+            return self._run_livepeer_retake(
+                video_file=video_file,
+                start_time=start_time,
+                duration=duration,
+                prompt=prompt,
+                mode=mode,
+            )
+
         if should_video_generate_with_ltx_api(
             force_api_generations=self.config.force_api_generations,
             settings=self.state.app_settings,
@@ -83,6 +93,75 @@ class RetakeHandler(StateHandlerBase):
             mode=mode,
             resolution=req.resolution,
         )
+
+    def _run_livepeer_retake(
+        self,
+        *,
+        video_file: Path,
+        start_time: float,
+        duration: float,
+        prompt: str,
+        mode: RetakeMode,
+    ) -> RetakeResponse:
+        import asyncio
+        import base64
+
+        client = getattr(self.state, "_livepeer_client", None)
+        if client is None:
+            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+
+        settings = self.state.app_settings
+        runner = client.get_runner(
+            settings.livepeer_selected_runner_id,
+            settings.livepeer_excluded_runner_ids,
+        )
+        if runner is None:
+            raise HTTPError(422, "No available remote runner — run discovery or select a provider")
+
+        fps = 24.0
+        try:
+            fps, _, _, _ = read_source_metadata(str(video_file))
+        except Exception:
+            pass
+
+        video_b64 = base64.b64encode(video_file.read_bytes()).decode()
+        runner_payload = {
+            "prompt": prompt,
+            "video_base64": video_b64,
+            "startTime": start_time,
+            "duration": duration,
+            "seed": self._resolve_seed(),
+            "fps": fps,
+            "mode": mode,
+        }
+
+        with self._generation.reserved_generation_start():
+            generation_id = uuid.uuid4().hex[:8]
+            try:
+                self._generation.start_api_generation(generation_id)
+                self._generation.update_progress("sending_to_remote", 10, None, None)
+
+                try:
+                    result = asyncio.run(client.call(runner, "/ltx-desktop/v1/retake", runner_payload, timeout_s=600))
+                except Exception as exc:
+                    self._generation.fail_generation(str(exc))
+                    raise HTTPError(500, f"Remote runner failed: {exc}") from exc
+
+                self._generation.update_progress("downloading_result", 90, None, None)
+
+                if "video_base64" in result:
+                    output_path = client.save_result(result["video_base64"], result.get("content_type", "video/mp4"))
+                else:
+                    raise HTTPError(500, "Runner returned unexpected response")
+
+                self._generation.update_progress("complete", 100, None, None)
+                self._generation.complete_generation(output_path)
+                return RetakeVideoResponse(status="complete", video_path=output_path)
+            except HTTPError:
+                raise
+            except Exception as exc:
+                self._generation.fail_generation(str(exc))
+                raise HTTPError(500, str(exc)) from exc
 
     def _run_api_retake(
         self,
