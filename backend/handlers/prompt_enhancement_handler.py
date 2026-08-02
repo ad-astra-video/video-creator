@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import base64
 import logging
 import random
 import uuid
@@ -69,6 +71,10 @@ class PromptEnhancementHandler(StateHandlerBase):
         return random.randint(0, _MAX_ENHANCE_SEED)
 
     def enhance(self, req: EnhancePromptRequest) -> EnhancePromptResponse:
+        # Remote inference path
+        if self.state.app_settings.remote_inference_enabled:
+            return self._enhance_via_livepeer(req)
+
         # Enhance never occupies the GPU slot (see PipelinesHandler.
         # evict_gpu_pipeline_for_prompt_enhancement) but still needs to mutually exclude with
         # generation and with itself — an abandoned/orphaned enhance call (e.g. the tab reloaded
@@ -99,6 +105,29 @@ class PromptEnhancementHandler(StateHandlerBase):
 
             self._generation.complete_generation(enhanced)
             return EnhancePromptResponse(enhancedPrompt=enhanced)
+
+    def _enhance_via_livepeer(self, req: EnhancePromptRequest) -> EnhancePromptResponse:
+        client = getattr(self.state, "_livepeer_client", None)
+        if client is None:
+            raise HTTPError(503, "Remote inference not initialized")
+
+        settings = self.state.app_settings
+        runner = client.get_runner(
+            settings.livepeer_selected_runner_id,
+            settings.livepeer_excluded_runner_ids,
+        )
+        if runner is None:
+            raise HTTPError(422, "No available remote runner")
+
+        runner_payload: dict[str, str] = {"prompt": req.prompt}
+        if req.imagePath is not None:
+            with open(req.imagePath, "rb") as f:
+                runner_payload["image_base64"] = base64.b64encode(f.read()).decode()
+
+        result = asyncio.run(
+            client.call(runner, "/ltx-desktop/v1/prompt-enhance", runner_payload, timeout_s=60)
+        )
+        return EnhancePromptResponse(enhancedPrompt=result.get("enhanced_prompt", req.prompt))
 
     def _resolve_and_enhance(self, req: EnhancePromptRequest, gemma_root: str | None) -> str:
         if req.mediaType == "image":

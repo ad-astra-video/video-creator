@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 import time
@@ -149,6 +150,10 @@ class IcLoraHandler(StateHandlerBase):
         return lora_path, depth_model_path
 
     def extract_conditioning(self, req: IcLoraExtractRequest) -> IcLoraExtractResponse:
+        # Route to remote runner if remote inference is enabled
+        if self.state.app_settings.remote_inference_enabled:
+            return self._extract_conditioning_via_livepeer(req)
+
         video_file = Path(req.video_path)
         if not video_file.exists():
             raise HTTPError(400, f"Video not found: {req.video_path}")
@@ -181,6 +186,108 @@ class IcLoraHandler(StateHandlerBase):
             conditioning_type=req.conditioning_type,
             frame_time=req.frame_time,
         )
+
+    def _extract_conditioning_via_livepeer(self, req: IcLoraExtractRequest) -> IcLoraExtractResponse:
+        """Route conditioning extraction to a remote runner via Livepeer."""
+        client = getattr(self.state, "_livepeer_client", None)
+        if client is None:
+            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+
+        settings = self.state.app_settings
+        runner = client.get_runner(
+            settings.livepeer_selected_runner_id,
+            settings.livepeer_excluded_runner_ids,
+        )
+        if runner is None:
+            raise HTTPError(422, "No available remote runner")
+
+        video_file = Path(req.video_path)
+        if not video_file.exists():
+            raise HTTPError(400, f"Video not found: {req.video_path}")
+
+        video_bytes = video_file.read_bytes()
+        video_b64 = base64.b64encode(video_bytes).decode()
+
+        payload = {
+            "video_base64": video_b64,
+            "frame_time": req.frame_time,
+            "conditioning_type": req.conditioning_type,
+        }
+
+        try:
+            result = asyncio.run(client.call(runner, "/ltx-desktop/v1/extract-conditioning", payload, timeout_s=120))
+        except Exception as exc:
+            raise HTTPError(500, f"Remote runner failed: {exc}") from exc
+
+        # Check if runner doesn't support this endpoint
+        if result.get("status") == "not_supported":
+            raise HTTPError(503, "IC-LoRA extract not supported by remote runner")
+
+        return IcLoraExtractResponse(
+            conditioning=result["conditioning"],
+            original=result["original"],
+            conditioning_type=result.get("conditioning_type", req.conditioning_type),
+            frame_time=result.get("frame_time", req.frame_time),
+        )
+
+    def _generate_ic_lora_via_livepeer(self, req: IcLoraGenerateRequest) -> IcLoraGenerateResponse:
+        """Route IC-LoRA generation to a remote runner via Livepeer."""
+        client = getattr(self.state, "_livepeer_client", None)
+        if client is None:
+            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+
+        settings = self.state.app_settings
+        runner = client.get_runner(
+            settings.livepeer_selected_runner_id,
+            settings.livepeer_excluded_runner_ids,
+        )
+        if runner is None:
+            raise HTTPError(422, "No available remote runner")
+
+        # Determine control video path
+        control_video_path = req.control_video_path or req.video_path
+        if control_video_path and Path(control_video_path).exists():
+            control_bytes = Path(control_video_path).read_bytes()
+            control_b64 = base64.b64encode(control_bytes).decode()
+        else:
+            control_b64 = None
+
+        payload = {
+            "prompt": req.prompt,
+            "seed": req.seed if req.seed is not None else self._resolve_seed(),
+            "conditioning_type": req.conditioning_type,
+        }
+        if control_b64:
+            payload["video_base64"] = control_b64
+        if req.resolution:
+            payload["resolution"] = {"width": req.resolution.width, "height": req.resolution.height}
+        if req.fps_override:
+            payload["fps"] = req.fps_override
+
+        # Build images payload if reference images provided
+        if req.images:
+            payload["images"] = []
+            for img in req.images:
+                if Path(img.path).exists():
+                    img_bytes = Path(img.path).read_bytes()
+                    img_b64 = base64.b64encode(img_bytes).decode()
+                    payload["images"].append({
+                        "base64": img_b64,
+                        "frame_idx": int(img.frame),
+                        "strength": float(img.strength),
+                    })
+
+        try:
+            result = asyncio.run(client.call(runner, "/ltx-desktop/v1/ic-lora-generate", payload, timeout_s=600))
+        except Exception as exc:
+            raise HTTPError(500, f"Remote runner failed: {exc}") from exc
+
+        # Save the result video
+        if "video_base64" in result:
+            output_path = client.save_result(result["video_base64"], result.get("content_type", "video/mp4"))
+            return IcLoraGenerateCompleteResponse(status="complete", video_path=output_path)
+
+        raise HTTPError(500, "Runner returned unexpected response")
 
     def _resample_control_fps(
         self, control_video_path: str, frame_count: int, src_fps: float, target_fps: float
@@ -405,6 +512,10 @@ class IcLoraHandler(StateHandlerBase):
                 self._text.clear_api_embeddings()
 
     def generate(self, req: IcLoraGenerateRequest) -> IcLoraGenerateResponse:
+        # Route to remote runner if remote inference is enabled
+        if self.state.app_settings.remote_inference_enabled:
+            return self._generate_ic_lora_via_livepeer(req)
+
         if req.ic_lora_id is not None:
             return self._generate_ic_lora(req)
 

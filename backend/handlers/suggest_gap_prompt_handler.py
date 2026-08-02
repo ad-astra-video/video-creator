@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 from threading import RLock
@@ -50,6 +51,10 @@ class SuggestGapPromptHandler(StateHandlerBase):
         self._http = http
 
     def suggest_gap(self, req: SuggestGapPromptRequest) -> SuggestGapPromptResponse:
+        # Remote inference via Livepeer
+        if self.state.app_settings.remote_inference_enabled:
+            return self._suggest_gap_via_livepeer(req)
+
         before_frame = _read_image_file_as_base64(req.beforeFrame)
         after_frame = _read_image_file_as_base64(req.afterFrame)
         input_image = _read_image_file_as_base64(req.inputImage)
@@ -146,3 +151,47 @@ class SuggestGapPromptHandler(StateHandlerBase):
             raise HTTPError(500, str(exc)) from exc
 
         return SuggestGapPromptResponse(status="success", suggested_prompt=suggested_prompt)
+
+    def _suggest_gap_via_livepeer(self, req: SuggestGapPromptRequest) -> SuggestGapPromptResponse:
+        """Route gap prompt suggestion to a remote runner via Livepeer."""
+        client = getattr(self.state, "_livepeer_client", None)
+        if client is None:
+            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+
+        settings = self.state.app_settings
+        runner = client.get_runner(
+            settings.livepeer_selected_runner_id,
+            settings.livepeer_excluded_runner_ids,
+        )
+        if runner is None:
+            raise HTTPError(422, "No available remote runner — run discovery or select a provider")
+
+        # Read image files as base64
+        before_frame = _read_image_file_as_base64(req.beforeFrame)
+        after_frame = _read_image_file_as_base64(req.afterFrame)
+        input_image = _read_image_file_as_base64(req.inputImage)
+
+        runner_payload: dict[str, object] = {
+            "before_prompt": req.beforePrompt or "",
+            "after_prompt": req.afterPrompt or "",
+            "gap_duration": req.gapDuration,
+            "mode": req.mode,
+        }
+        if before_frame:
+            runner_payload["before_image_base64"] = before_frame[0]
+        if after_frame:
+            runner_payload["after_image_base64"] = after_frame[0]
+        if input_image:
+            runner_payload["input_image_base64"] = input_image[0]
+
+        try:
+            result = asyncio.run(
+                client.call(runner, "/ltx-desktop/v1/suggest-gap-prompt", runner_payload, timeout_s=30)
+            )
+        except Exception as exc:
+            raise HTTPError(500, f"Remote runner failed: {exc}") from exc
+
+        return SuggestGapPromptResponse(
+            status="success",
+            suggested_prompt=result.get("suggested_prompt", ""),
+        )

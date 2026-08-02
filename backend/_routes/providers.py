@@ -31,7 +31,7 @@ async def get_providers(
 ) -> dict[str, Any]:
     """List discovered providers with selection/exclusion state."""
     settings = handler.settings.get_settings_snapshot()
-    livepeer_client = getattr(request.app.state, "livepeer_client", None)
+    livepeer_client = getattr(handler.state, "_livepeer_client", None)
 
     runners = {}
     if livepeer_client:
@@ -62,7 +62,7 @@ async def discover_providers(
     if not settings.livepeer_signer_url:
         return {"error": "Signer URL not configured"}
 
-    livepeer_client = getattr(request.app.state, "livepeer_client", None)
+    livepeer_client = getattr(handler.state, "_livepeer_client", None)
     if not livepeer_client:
         return {"error": "Livepeer client not initialized"}
 
