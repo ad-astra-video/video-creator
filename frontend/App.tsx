@@ -185,11 +185,18 @@ function AppContent() {
     [saveLtxApiKey],
   )
 
+  // When remote inference is enabled with a signer URL, skip GPU/model setup
+  const isRemoteMode = isLoaded && settings.remoteInferenceEnabled && settings.hasLivepeerSignerUrl
+
   const isForcedFirstRun =
     setupState !== 'loading' && setupState.needsSetup && !setupState.needsLicense && forceApiGenerations
 
   const shouldAutoFinalizeForcedFirstRun =
     isForcedFirstRun && isLoaded && settings.hasLtxApiKey && !isFinalizingFirstRun && !firstRunFinalizeError
+
+  // Auto-complete first-run setup when remote mode is active
+  const shouldAutoFinalizeRemote =
+    isRemoteMode && setupState !== 'loading' && setupState.needsSetup && !isFinalizingFirstRun && !firstRunFinalizeError
 
   const areRequiredModelsDownloaded = useCallback(async () => {
     const [ltxResult, imgGenResult] = await Promise.all([
@@ -221,12 +228,20 @@ function AppContent() {
     })
   }, [shouldAutoFinalizeForcedFirstRun, handleFirstRunComplete])
 
+  // Auto-complete first-run setup when remote mode is enabled
+  useEffect(() => {
+    if (!shouldAutoFinalizeRemote) return
+    void handleFirstRunComplete().catch(() => {
+      // Error state is handled via firstRunFinalizeError.
+    })
+  }, [shouldAutoFinalizeRemote, handleFirstRunComplete])
+
   useEffect(() => {
     if (setupState === 'loading' || waitingForRuntimePolicy || backendLoading || !connected) {
       return
     }
 
-    if (forceApiGenerations || setupState.needsLicense || setupState.needsSetup) {
+    if (forceApiGenerations || isRemoteMode || setupState.needsLicense || setupState.needsSetup) {
       setRequiredModelsGate('ready')
       return
     }
@@ -356,7 +371,7 @@ function AppContent() {
     </div>
   ) : null
 
-  const showGlobalControls = currentView !== 'home' && connected && setupState !== 'loading' && !setupState.needsSetup
+  const showGlobalControls = currentView !== 'home' && connected && setupState !== 'loading' && (!setupState.needsSetup || isRemoteMode)
   const shouldBlockUntilSettingsLoaded = forceApiGenerations && !isLoaded
   const shouldShowForcedFirstRunUpsell = isForcedFirstRun && isLoaded && !settings.hasLtxApiKey
   const shouldShowGlobalForcedUpsell = forceApiGenerations && setupState !== 'loading' && !setupState.needsSetup && isLoaded && !settings.hasLtxApiKey
@@ -504,11 +519,11 @@ function AppContent() {
     )
   }
 
-  if (setupState.needsSetup && !forceApiGenerations) {
+  if (setupState.needsSetup && !forceApiGenerations && !isRemoteMode) {
     return <LaunchGate showLicenseStep={false} onComplete={handleFirstRunComplete} />
   }
 
-  if (requiredModelsGate === 'missing') {
+  if (requiredModelsGate === 'missing' && !isRemoteMode) {
     return <LaunchGate showLicenseStep={false} onComplete={handleMissingModelsComplete} />
   }
 
