@@ -210,7 +210,7 @@ export function useRegeneration(params: UseRegenerationParams) {
         cameraMotion: generationParams.cameraMotion,
         imageResolution: normalizeImageResolution(generationParams.resolution),
         imageAspectRatio: generationParams.imageAspectRatio || '16:9',
-        imageSteps: generationParams.imageSteps || 9,
+        imageSteps: generationParams.imageSteps || 4,
         variations: 1,
       })
       return
@@ -232,7 +232,7 @@ export function useRegeneration(params: UseRegenerationParams) {
         cameraMotion: generationParams.cameraMotion,
         imageResolution: normalizeImageResolution(generationParams.resolution),
         imageAspectRatio: generationParams.imageAspectRatio || '16:9',
-        imageSteps: generationParams.imageSteps || 9,
+        imageSteps: generationParams.imageSteps || 8,
         imageEditStrength: generationParams.imageEditStrength,
         variations: 1,
       }, generationParams.inputImageUrl)
@@ -251,7 +251,7 @@ export function useRegeneration(params: UseRegenerationParams) {
       cameraMotion: generationParams.cameraMotion,
       imageResolution: '1080p',
       imageAspectRatio: generationParams.imageAspectRatio || '16:9',
-      imageSteps: generationParams.imageSteps || 9,
+      imageSteps: generationParams.imageSteps || 4,
       // Local LoRA refs are filesystem paths the cloud API can't resolve.
       loras: !shouldVideoGenerateWithLtxApi ? generationParams.loras : undefined,
     }
