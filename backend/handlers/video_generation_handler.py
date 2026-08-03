@@ -86,8 +86,9 @@ class VideoGenerationHandler(StateHandlerBase):
         return build_generate_video_model_specs_response()
 
     def generate(self, req: GenerateVideoRequest) -> GenerateVideoResponse:
-        # Check remote inference first
-        if self.state.app_settings.remote_inference_enabled:
+        # A configured Livepeer signer URL is the authoritative routing decision:
+        # all generation goes through remote Livepeer, no LTX/FAL API key needed.
+        if self.state.app_settings.livepeer_signer_url.strip():
             return self._generate_via_livepeer(req)
 
         use_api_specs = should_video_generate_with_ltx_api(

@@ -51,8 +51,9 @@ class ImageGenerationHandler(StateHandlerBase):
         self._zit_api_client = zit_api_client
 
     def generate(self, req: GenerateImageRequest) -> GenerateImageResponse:
-        # Remote inference via Livepeer
-        if self.state.app_settings.remote_inference_enabled:
+        # A configured Livepeer signer URL is the authoritative routing decision:
+        # all generation goes through remote Livepeer, no FAL/LTX API key needed.
+        if self.state.app_settings.livepeer_signer_url.strip():
             return self._generate_via_livepeer(req)
 
         with self._generation.reserved_generation_start():
