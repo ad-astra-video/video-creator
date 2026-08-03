@@ -529,6 +529,7 @@ function PromptBar({
     variations: number
     audio?: boolean
     imageEditStrength?: number
+    imageSteps?: number
   }
   onSettingsChange: (settings: any) => void
   videoModelSpecs: VideoGenerationModelSpecItem[]
@@ -903,6 +904,30 @@ function PromptBar({
                     </>
                   }
                 />
+
+                {/* Quality (inference steps) dropdown */}
+                <SettingsDropdown
+                  title="QUALITY"
+                  value={String(settings.imageSteps || 4)}
+                  onChange={(v) => onSettingsChange({ ...settings, imageSteps: parseInt(v, 10) })}
+                  options={[
+                    { value: '4', label: 'Fast' },
+                    { value: '8', label: 'Balanced' },
+                    { value: '12', label: 'High' },
+                  ]}
+                  trigger={
+                    <>
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>
+                        {(settings.imageSteps || 4) >= 12
+                          ? 'High'
+                          : (settings.imageSteps || 4) >= 8
+                            ? 'Balanced'
+                            : 'Fast'}
+                      </span>
+                    </>
+                  }
+                />
               </>
             )}
           </>
@@ -1156,6 +1181,7 @@ const DEFAULT_VIDEO_SETTINGS = {
   variations: 1,
   audio: true,
   imageEditStrength: 0.6,
+  imageSteps: IMAGE_STEPS_GENERATE,
 }
 
 export function GenSpace() {
@@ -2032,7 +2058,7 @@ export function GenSpace() {
               audio: false,
               cameraMotion: 'none',
               imageAspectRatio: settings.aspectRatio,
-              imageSteps: editContext ? IMAGE_STEPS_EDIT : IMAGE_STEPS_GENERATE,
+              imageSteps: editContext ? IMAGE_STEPS_EDIT : (settings.imageSteps ?? IMAGE_STEPS_GENERATE),
               ...(editContext ? { inputImageUrl: editContext.source, imageEditStrength: editContext.strength } : {}),
             },
             takes: [{
@@ -2412,7 +2438,7 @@ export function GenSpace() {
         cameraMotion: 'none',
         imageResolution: settings.imageResolution,
         imageAspectRatio: settings.aspectRatio,
-        imageSteps: editSource ? IMAGE_STEPS_EDIT : IMAGE_STEPS_GENERATE,
+        imageSteps: editSource ? IMAGE_STEPS_EDIT : (settings.imageSteps ?? IMAGE_STEPS_GENERATE),
         variations: settings.variations,
         imageEditStrength: settings.imageEditStrength,
       }
