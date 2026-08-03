@@ -178,6 +178,7 @@ class AppHandler:
             pipelines_handler=self.pipelines,
             text_handler=self.text,
             ltx_api_client=ltx_api_client,
+            lora_catalog=lora_catalog_provider,
             config=config,
         )
 

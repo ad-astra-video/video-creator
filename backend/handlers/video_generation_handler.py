@@ -43,6 +43,7 @@ from server_utils.media_validation import (
     validate_image_file,
 )
 from services.interfaces import LTXAPIClient
+from services.lora_catalog import LoraCatalogProvider
 from services.ltx_api_client.ltx_api_client import LTXAPIClientError
 from state.app_state_types import AppState
 from state.app_settings import should_video_generate_with_ltx_api
@@ -74,6 +75,7 @@ class VideoGenerationHandler(StateHandlerBase):
         pipelines_handler: PipelinesHandler,
         text_handler: TextHandler,
         ltx_api_client: LTXAPIClient,
+        lora_catalog: LoraCatalogProvider,
         config: RuntimeConfig,
     ) -> None:
         super().__init__(state, lock, config)
@@ -81,6 +83,7 @@ class VideoGenerationHandler(StateHandlerBase):
         self._pipelines = pipelines_handler
         self._text = text_handler
         self._ltx_api_client = ltx_api_client
+        self._catalog = lora_catalog
 
     def get_model_specs(self) -> GenerateVideoModelsSpecsResponse:
         return build_generate_video_model_specs_response()
@@ -188,6 +191,21 @@ class VideoGenerationHandler(StateHandlerBase):
         except ValueError as exc:
             raise HTTPError(400, str(exc)) from exc
 
+    def _catalog_lora_ref(self, ref: str) -> tuple[str, str]:
+        """Map an installed ``LoraEntry.ref`` (models_dir-relative ``loras/<id>/<file>``)
+        back to its catalog ``(id, filename)`` for forwarding to the runner.
+
+        Catalog-only: raises a 400 if the ref doesn't correspond to a known
+        catalog LoRA, so we never forward an arbitrary/local path remotely."""
+        parts = Path(ref).parts
+        if len(parts) != 3 or parts[0] != "loras":
+            raise HTTPError(400, f"Not a catalog LoRA ref: {ref!r}")
+        lora_id, filename = parts[1], parts[2]
+        item = self._catalog.get_lora(lora_id)
+        if item is None or filename not in {v.filename for v in item.download.variants}:
+            raise HTTPError(400, f"LoRA {lora_id!r} is not a downloadable catalog LoRA")
+        return lora_id, filename
+
     def _generate_via_livepeer(self, req: GenerateVideoRequest) -> GenerateVideoResponse:
         """Route generation to a remote runner via Livepeer."""
         import asyncio
@@ -231,6 +249,15 @@ class VideoGenerationHandler(StateHandlerBase):
         }
         if is_i2v and image_b64:
             runner_payload["image_base64"] = image_b64
+
+        # Forward the selected catalog LoRA(s) so the remote runner can download
+        # and apply them (catalog-only; unknown refs raise 400 in _catalog_lora_ref).
+        if req.loras:
+            runner_payload["loras"] = [
+                {"id": lid, "filename": fname, "scale": l.scale}
+                for l in req.loras
+                for (lid, fname) in [self._catalog_lora_ref(l.ref)]
+            ]
 
         gen_mode = "/i2v" if is_i2v else "/t2v"
         endpoint = f"/ltx-desktop/v1{gen_mode}"
