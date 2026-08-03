@@ -1079,6 +1079,11 @@ export interface components {
         /** GenerateImageRequest */
         GenerateImageRequest: {
             /**
+             * Guidancescale
+             * @default 0
+             */
+            guidanceScale: number;
+            /**
              * Height
              * @default 1024
              */
@@ -1092,7 +1097,7 @@ export interface components {
             numImages: number;
             /**
              * Numsteps
-             * @default 4
+             * @default 9
              */
             numSteps: number;
             /** Prompt */

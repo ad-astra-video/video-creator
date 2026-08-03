@@ -926,6 +926,13 @@
       },
       "GenerateImageRequest": {
         "properties": {
+          "guidanceScale": {
+            "default": 0.0,
+            "maximum": 30.0,
+            "minimum": 0.0,
+            "title": "Guidancescale",
+            "type": "number"
+          },
           "height": {
             "default": 1024,
             "minimum": 16.0,
@@ -950,7 +957,7 @@
             "type": "integer"
           },
           "numSteps": {
-            "default": 4,
+            "default": 9,
             "minimum": 1.0,
             "title": "Numsteps",
             "type": "integer"

@@ -431,6 +431,9 @@ export function useGeneration(): UseGenerationReturn {
           height: dims.height,
           numSteps,
           numImages,
+          // Z-Image-Turbo is guidance-free: always send guidanceScale 0.0 so the
+          // remote runner doesn't fall back to a nonzero pipeline default.
+          guidanceScale: 0.0,
           // strength is ignored server-side unless imagePath is set, but the request type
           // requires it — send the default rather than the edit-only setting when not editing.
           strength: isEditing ? (settings.imageEditStrength ?? 0.6) : 0.6,

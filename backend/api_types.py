@@ -413,6 +413,9 @@ class GenerateImageRequest(BaseModel):
     numImages: int = Field(default=1, ge=1)
     imagePath: str | None = None
     strength: float = Field(default=0.6, ge=0.0, le=1.0)
+    # Z-Image-Turbo is guidance-free; 0.0 matches the local pipeline. Sent to the
+    # remote runner so it doesn't fall back to a nonzero pipeline default.
+    guidanceScale: float = Field(default=0.0, ge=0.0, le=30.0)
 
 
 def _default_model_types() -> set[ModelCheckpointID]:

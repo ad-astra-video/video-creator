@@ -285,6 +285,7 @@ class ImageGenerationHandler(StateHandlerBase):
             "height": height,
             "numSteps": req.numSteps,
             "seed": self._resolve_seed(),
+            "guidanceScale": req.guidanceScale,
         }
 
         with self._generation.reserved_generation_start():
