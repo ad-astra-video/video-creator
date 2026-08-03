@@ -73,6 +73,7 @@ class AppSettings(SettingsBaseModel):
     livepeer_video_enabled: bool = True
     livepeer_image_enabled: bool = True
     livepeer_text_encoding_enabled: bool = True
+    livepeer_prompt_enhance_enabled: bool = True
     livepeer_discovery_url: str = ""
     livepeer_api_key: str = ""
     livepeer_selected_runner_id: str = ""
@@ -155,6 +156,7 @@ class SettingsResponse(SettingsBaseModel):
     livepeer_video_enabled: bool = True
     livepeer_image_enabled: bool = True
     livepeer_text_encoding_enabled: bool = True
+    livepeer_prompt_enhance_enabled: bool = True
     livepeer_discovery_url: str = ""
     has_livepeer_discovery_url: bool = False
     has_livepeer_api_key: bool = False

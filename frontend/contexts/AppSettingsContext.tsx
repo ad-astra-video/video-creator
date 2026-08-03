@@ -27,6 +27,7 @@ export interface AppSettings {
   livepeerVideoEnabled: boolean
   livepeerImageEnabled: boolean
   livepeerTextEncodingEnabled: boolean
+  livepeerPromptEnhanceEnabled: boolean
   livepeerDiscoveryUrl: string
   hasLivepeerDiscoveryUrl: boolean
   hasLivepeerApiKey: boolean
@@ -54,6 +55,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   livepeerVideoEnabled: true,
   livepeerImageEnabled: true,
   livepeerTextEncodingEnabled: true,
+  livepeerPromptEnhanceEnabled: true,
   livepeerDiscoveryUrl: '',
   hasLivepeerDiscoveryUrl: false,
   hasLivepeerApiKey: false,
@@ -115,6 +117,7 @@ function normalizeAppSettings(data: Partial<AppSettings>): AppSettings {
     livepeerVideoEnabled: data.livepeerVideoEnabled ?? DEFAULT_APP_SETTINGS.livepeerVideoEnabled,
     livepeerImageEnabled: data.livepeerImageEnabled ?? DEFAULT_APP_SETTINGS.livepeerImageEnabled,
     livepeerTextEncodingEnabled: data.livepeerTextEncodingEnabled ?? DEFAULT_APP_SETTINGS.livepeerTextEncodingEnabled,
+    livepeerPromptEnhanceEnabled: data.livepeerPromptEnhanceEnabled ?? DEFAULT_APP_SETTINGS.livepeerPromptEnhanceEnabled,
     livepeerDiscoveryUrl: data.livepeerDiscoveryUrl ?? DEFAULT_APP_SETTINGS.livepeerDiscoveryUrl,
     hasLivepeerDiscoveryUrl: data.hasLivepeerDiscoveryUrl ?? DEFAULT_APP_SETTINGS.hasLivepeerDiscoveryUrl,
     hasLivepeerApiKey: data.hasLivepeerApiKey ?? DEFAULT_APP_SETTINGS.hasLivepeerApiKey,
@@ -320,6 +323,7 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
       livepeerVideoEnabled: true,
       livepeerImageEnabled: true,
       livepeerTextEncodingEnabled: true,
+      livepeerPromptEnhanceEnabled: true,
     })
     if (!result.ok) {
       throw new Error(result.error.message)

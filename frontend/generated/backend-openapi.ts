@@ -816,6 +816,8 @@ export interface components {
             livepeerExcludedRunnerIds?: string[] | null;
             /** Livepeerimageenabled */
             livepeerImageEnabled?: boolean | null;
+            /** Livepeerpromptenhanceenabled */
+            livepeerPromptEnhanceEnabled?: boolean | null;
             /** Livepeerselectedrunnerid */
             livepeerSelectedRunnerId?: string | null;
             /** Livepeertextencodingenabled */
@@ -2097,6 +2099,11 @@ export interface components {
              * @default true
              */
             livepeerImageEnabled: boolean;
+            /**
+             * Livepeerpromptenhanceenabled
+             * @default true
+             */
+            livepeerPromptEnhanceEnabled: boolean;
             /**
              * Livepeerselectedrunnerid
              * @default

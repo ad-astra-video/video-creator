@@ -71,8 +71,13 @@ class PromptEnhancementHandler(StateHandlerBase):
         return random.randint(0, _MAX_ENHANCE_SEED)
 
     def enhance(self, req: EnhancePromptRequest) -> EnhancePromptResponse:
-        # Remote inference path
-        if self.state.app_settings.remote_inference_enabled:
+        # Route prompt enhancement through a remote Livepeer runner when the user has
+        # enabled it AND a Discovery URL is configured — the same per-feature gate the
+        # video/image/text-encoding paths use (see livepeer_video_enabled, etc.).
+        if (
+            self.state.app_settings.livepeer_prompt_enhance_enabled
+            and self.state.app_settings.livepeer_discovery_url.strip()
+        ):
             return self._enhance_via_livepeer(req)
 
         # Enhance never occupies the GPU slot (see PipelinesHandler.
@@ -119,14 +124,26 @@ class PromptEnhancementHandler(StateHandlerBase):
         if runner is None:
             raise HTTPError(422, "No available remote runner")
 
-        runner_payload: dict[str, str] = {"prompt": req.prompt}
+        runner_payload: dict[str, object] = {
+            "prompt": req.prompt,
+            # Enhancement is a quick, exploratory draw — send a fresh seed so a redo
+            # does not reproduce the same (potentially garbled) output.
+            "seed": self._random_seed(),
+        }
         if req.imagePath is not None:
             with open(req.imagePath, "rb") as f:
                 runner_payload["image_base64"] = base64.b64encode(f.read()).decode()
 
-        result = asyncio.run(
-            client.call(runner, "/ltx-desktop/v1/prompt-enhance", runner_payload, timeout_s=60)
-        )
+        # Gemma loads on the runner for each enhance call and the video pipeline is
+        # evicted/reloaded around it, so allow a generous timeout.
+        try:
+            result = asyncio.run(
+                client.call(runner, "/ltx-desktop/v1/prompt-enhance", runner_payload, timeout_s=180)
+            )
+        except Exception as exc:
+            logger.error("Remote prompt enhancement failed: %s", exc)
+            raise HTTPError(500, f"Remote prompt enhancement failed: {exc}") from exc
+
         return EnhancePromptResponse(enhancedPrompt=result.get("enhanced_prompt", req.prompt))
 
     def _resolve_and_enhance(self, req: EnhancePromptRequest, gemma_root: str | None) -> str:

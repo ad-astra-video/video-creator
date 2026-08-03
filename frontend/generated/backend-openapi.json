@@ -139,6 +139,17 @@
             ],
             "title": "Livepeerimageenabled"
           },
+          "livepeerPromptEnhanceEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Livepeerpromptenhanceenabled"
+          },
           "livepeerSelectedRunnerId": {
             "anyOf": [
               {
@@ -3617,6 +3628,11 @@
           "livepeerImageEnabled": {
             "default": true,
             "title": "Livepeerimageenabled",
+            "type": "boolean"
+          },
+          "livepeerPromptEnhanceEnabled": {
+            "default": true,
+            "title": "Livepeerpromptenhanceenabled",
             "type": "boolean"
           },
           "livepeerSelectedRunnerId": {

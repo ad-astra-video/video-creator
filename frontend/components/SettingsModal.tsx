@@ -1404,6 +1404,14 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   and motion cues to help generate higher quality videos. Control independently for each generation type.
                 </p>
 
+                <LivepeerToggle
+                  enabled={settings.livepeerPromptEnhanceEnabled}
+                  onToggle={() => onSettingsChange({ ...settings, livepeerPromptEnhanceEnabled: !settings.livepeerPromptEnhanceEnabled })}
+                  disabled={!settings.hasLivepeerDiscoveryUrl}
+                  label="Generate with Livepeer"
+                  description="Route prompt enhancement to your own Livepeer orchestrator/runner, which runs its local Gemma model for the rewrite. Requires a Discovery URL in the API Keys tab."
+                />
+
                 {!settings.hasLtxApiKey ? (
                   <div className="space-y-4 mt-2">
                     <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-4 space-y-3">

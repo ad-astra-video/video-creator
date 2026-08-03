@@ -10,6 +10,9 @@ from api_types import (
     PromptTemplatePlaceholder,
     PromptTemplateSpec,
 )
+
+from api_types import EnhancePromptResponse
+from handlers.prompt_enhancement_handler import PromptEnhancementHandler
 from tests.fakes import FakeResponse
 from tests.http_error_assertions import assert_http_error
 
@@ -496,3 +499,52 @@ class TestImageMediaType:
         assert r.json()["enhancedPrompt"] == "a shiny red sedan"
         system_instruction = test_state.http.calls[-1].json_payload["systemInstruction"]["parts"][0]["text"]
         assert "Z-Image-Turbo" in system_instruction
+
+class TestLivepeerRouting:
+    """POST /api/enhance-prompt routes to the remote runner when the per-feature
+    Livepeer toggle is on AND a Discovery URL is configured — otherwise it falls
+    back to the local Gemma/Gemini enhancer."""
+
+    @staticmethod
+    def _stub_livepeer(monkeypatch, calls: list[str]):
+        def fake_livepeer(self_obj, req):
+            calls.append(req.prompt)
+            return EnhancePromptResponse(enhancedPrompt="via livepeer")
+        monkeypatch.setattr(PromptEnhancementHandler, "_enhance_via_livepeer", fake_livepeer)
+
+    def test_routes_to_livepeer_when_enabled_and_url_set(self, client, test_state, monkeypatch):
+        calls: list[str] = []
+        self._stub_livepeer(monkeypatch, calls)
+        test_state.state.app_settings.livepeer_prompt_enhance_enabled = True
+        test_state.state.app_settings.livepeer_discovery_url = "http://orch:8935"
+
+        r = client.post("/api/enhance-prompt", json={"prompt": "a cat"})
+
+        assert r.status_code == 200
+        assert calls == ["a cat"]
+        assert r.json()["enhancedPrompt"] == "via livepeer"
+
+    def test_local_when_toggle_off(self, client, test_state, monkeypatch, fake_services, create_fake_model_files):
+        calls: list[str] = []
+        self._stub_livepeer(monkeypatch, calls)
+        test_state.state.app_settings.livepeer_prompt_enhance_enabled = False
+        test_state.state.app_settings.livepeer_discovery_url = "http://orch:8935"
+        create_fake_model_files()
+
+        r = client.post("/api/enhance-prompt", json={"prompt": "a cat"})
+
+        assert r.status_code == 200
+        assert calls == []
+        assert r.json()["enhancedPrompt"] == fake_services.prompt_enhancer_pipeline.enhanced_prompt
+
+    def test_local_when_no_discovery_url(self, client, test_state, monkeypatch, fake_services, create_fake_model_files):
+        calls: list[str] = []
+        self._stub_livepeer(monkeypatch, calls)
+        test_state.state.app_settings.livepeer_prompt_enhance_enabled = True
+        create_fake_model_files()
+
+        r = client.post("/api/enhance-prompt", json={"prompt": "a cat"})
+
+        assert r.status_code == 200
+        assert calls == []
+        assert r.json()["enhancedPrompt"] == fake_services.prompt_enhancer_pipeline.enhanced_prompt
