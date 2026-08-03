@@ -332,8 +332,8 @@ function formatSeconds(seconds: number): string {
 }
 
 const DEFAULT_LORA_SCALE = 1.0
-const IMAGE_STEPS_GENERATE = 4
-const IMAGE_STEPS_EDIT = 8
+const IMAGE_STEPS_GENERATE = 9
+const IMAGE_STEPS_EDIT = 9
 
 // Multi-select LoRA picker with a per-LoRA strength slider.
 function LoRAPicker({
@@ -1740,7 +1740,7 @@ export function GenSpace() {
             audio: savedVideoSettings.audio || false,
             cameraMotion: 'none',
             imageAspectRatio: savedVideoSettings.aspectRatio,
-            imageSteps: 4,
+                        imageSteps: 9,
             inputImageUrl: inputImage || undefined,
             inputAudioUrl: inputAudio || undefined,
             loras: isLocalMode && selectedLoras.length > 0
@@ -2433,7 +2433,7 @@ export function GenSpace() {
           aspectRatio: videoSettings.aspectRatio,
           imageResolution: videoSettings.imageResolution,
           imageAspectRatio: videoSettings.aspectRatio,
-          imageSteps: 4,
+                    imageSteps: 9,
           // Local LoRA refs are filesystem paths the cloud API can't resolve.
           loras: isLocalMode && selectedLoras.length > 0 ? selectedLoras : undefined,
       }

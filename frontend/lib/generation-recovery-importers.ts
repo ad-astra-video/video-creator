@@ -40,7 +40,7 @@ const importVideo: RecoveryImporter = async (ctx, result, { addAsset, modelsDir 
       audio: s?.audio ?? false,
       cameraMotion: 'none',
       imageAspectRatio: s?.aspectRatio,
-      imageSteps: 4,
+      imageSteps: 9,
       inputImageUrl: ctx.inputImageUrl,
       inputAudioUrl: ctx.inputAudioUrl,
       loras: s?.loras && s.loras.length > 0
@@ -96,7 +96,7 @@ const importImage: RecoveryImporter = async (ctx, result, { addAsset }) => {
         audio: false,
         cameraMotion: 'none',
         imageAspectRatio: s?.aspectRatio,
-        imageSteps: s?.imageSteps ?? 4,
+        imageSteps: s?.imageSteps ?? 9,
         ...(ctx.inputImageUrl ? { inputImageUrl: ctx.inputImageUrl, imageEditStrength: s?.imageEditStrength } : {}),
       },
       takes: [{

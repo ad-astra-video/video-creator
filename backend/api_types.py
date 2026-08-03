@@ -409,7 +409,7 @@ class GenerateImageRequest(BaseModel):
     prompt: NonEmptyPrompt
     width: int = Field(default=1024, ge=16)
     height: int = Field(default=1024, ge=16)
-    numSteps: int = Field(default=4, ge=1)
+    numSteps: int = Field(default=9, ge=1)
     numImages: int = Field(default=1, ge=1)
     imagePath: str | None = None
     strength: float = Field(default=0.6, ge=0.0, le=1.0)

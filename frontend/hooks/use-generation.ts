@@ -396,7 +396,7 @@ export function useGeneration(): UseGenerationReturn {
 
         // Edit runs at the source image's resolution; width/height are ignored server-side.
         const dims = isEditing ? { width: 1024, height: 1024 } : getImageDimensions(settings)
-        const numSteps = settings.imageSteps || (isEditing ? 8 : 4)
+        const numSteps = settings.imageSteps || 9
 
         // Poll for progress
         const pollProgress = async () => {
