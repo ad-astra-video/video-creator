@@ -239,7 +239,7 @@ class VideoGenerationHandler(StateHandlerBase):
             image_data = Path(image_path).read_bytes() if image_path else b""
             image_b64 = base64.b64encode(image_data).decode() if image_data else None
 
-        runner_payload = {
+        runner_payload: dict[str, object] = {
             "prompt": req.prompt,
             "seed": req.seed if req.seed is not None else self._resolve_seed(),
             "resolution": req.resolution,
