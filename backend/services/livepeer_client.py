@@ -165,6 +165,27 @@ class LivepeerClient:
                 return runner
         return None
 
+    def get_runner_with_recovery(
+        self, selected_id: str, excluded_ids: list[str]
+    ) -> RunnerInfo | None:
+        """Pick a runner, retrying a fresh discovery pass first if none is cached.
+
+        The background discovery loop (``periodic_discovery``) can be empty at
+        startup or stale, so when no runner is known and a Discovery URL is
+        configured we run one synchronous discovery pass before surfacing the
+        "no available runner" error. Returns the chosen runner, or None if there
+        is still none available.
+        """
+        runner = self.get_runner(selected_id, excluded_ids)
+        if runner is None and self.discovery_url.strip():
+            logger.info("No cached runner — running one discovery recovery pass")
+            try:
+                asyncio.run(self.discover())
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Discovery recovery failed: %s", exc)
+            runner = self.get_runner(selected_id, excluded_ids)
+        return runner
+
     async def call(
         self, runner: RunnerInfo, endpoint: str, payload: dict, timeout_s: float = 600.0
     ) -> dict:

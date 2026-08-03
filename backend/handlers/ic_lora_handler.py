@@ -194,7 +194,7 @@ class IcLoraHandler(StateHandlerBase):
             raise HTTPError(503, "Remote inference not initialized — check Discovery URL")
 
         settings = self.state.app_settings
-        runner = client.get_runner(
+        runner = client.get_runner_with_recovery(
             settings.livepeer_selected_runner_id,
             settings.livepeer_excluded_runner_ids,
         )
@@ -237,7 +237,7 @@ class IcLoraHandler(StateHandlerBase):
             raise HTTPError(503, "Remote inference not initialized — check Discovery URL")
 
         settings = self.state.app_settings
-        runner = client.get_runner(
+        runner = client.get_runner_with_recovery(
             settings.livepeer_selected_runner_id,
             settings.livepeer_excluded_runner_ids,
         )
