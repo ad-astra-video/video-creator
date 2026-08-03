@@ -347,11 +347,11 @@ export async function startPythonBackend(): Promise<void> {
               const s = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
               return {
                 LTX_REMOTE_INFERENCE: s.remote_inference_enabled ? '1' : '0',
-                LTX_LIVEPEER_SIGNER: s.livepeer_signer_url || '',
+                LTX_LIVEPEER_DISCOVERY: s.livepeer_discovery_url || '',
               }
             }
           } catch { /* ignore */ }
-          return { LTX_REMOTE_INFERENCE: '0', LTX_LIVEPEER_SIGNER: '' }
+          return { LTX_REMOTE_INFERENCE: '0', LTX_LIVEPEER_DISCOVERY: '' }
         })(),
         // Bundled prebuilt mps-sdpa zero-copy extension cache (macOS). Lives inside
         // python-embed (→ resources/python) so it rides the CI python-embed cache. The
