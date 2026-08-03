@@ -235,11 +235,14 @@ class VideoGenerationHandler(StateHandlerBase):
         gen_mode = "/i2v" if is_i2v else "/t2v"
         endpoint = f"/ltx-desktop/v1{gen_mode}"
 
-        # Start generation tracking
+        # Start generation tracking. Remote Livepeer generation does not build a
+        # local GPU pipeline, so this must use the API-slot lifecycle
+        # (start_api_generation) — start_generation requires state.gpu_slot and
+        # raises "No active GPU pipeline" on this no-GPU box.
         generation_id = self._make_generation_id()
         with self._generation.reserved_generation_start():
             try:
-                self._generation.start_generation(generation_id)
+                self._generation.start_api_generation(generation_id)
                 self._generation.update_progress("sending_to_remote", 10, 0, 8)
 
                 # Call remote runner (async)
