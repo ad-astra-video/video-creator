@@ -191,7 +191,7 @@ class IcLoraHandler(StateHandlerBase):
         """Route conditioning extraction to a remote runner via Livepeer."""
         client = getattr(self.state, "_livepeer_client", None)
         if client is None:
-            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+            raise HTTPError(503, "Remote inference not initialized — check Discovery URL")
 
         settings = self.state.app_settings
         runner = client.get_runner(
@@ -234,7 +234,7 @@ class IcLoraHandler(StateHandlerBase):
         """Route IC-LoRA generation to a remote runner via Livepeer."""
         client = getattr(self.state, "_livepeer_client", None)
         if client is None:
-            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+            raise HTTPError(503, "Remote inference not initialized — check Discovery URL")
 
         settings = self.state.app_settings
         runner = client.get_runner(

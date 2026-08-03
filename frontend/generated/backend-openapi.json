@@ -103,6 +103,17 @@
             ],
             "title": "Livepeerapikey"
           },
+          "livepeerDiscoveryUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Livepeerdiscoveryurl"
+          },
           "livepeerExcludedRunnerIds": {
             "anyOf": [
               {
@@ -138,17 +149,6 @@
               }
             ],
             "title": "Livepeerselectedrunnerid"
-          },
-          "livepeerSignerUrl": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Livepeersignerurl"
           },
           "livepeerTextEncodingEnabled": {
             "anyOf": [
@@ -3585,15 +3585,20 @@
             "title": "Haslivepeerapikey",
             "type": "boolean"
           },
-          "hasLivepeerSignerUrl": {
+          "hasLivepeerDiscoveryUrl": {
             "default": false,
-            "title": "Haslivepeersignerurl",
+            "title": "Haslivepeerdiscoveryurl",
             "type": "boolean"
           },
           "hasLtxApiKey": {
             "default": false,
             "title": "Hasltxapikey",
             "type": "boolean"
+          },
+          "livepeerDiscoveryUrl": {
+            "default": "",
+            "title": "Livepeerdiscoveryurl",
+            "type": "string"
           },
           "livepeerExcludedRunnerIds": {
             "items": {

@@ -108,7 +108,7 @@ class RetakeHandler(StateHandlerBase):
 
         client = getattr(self.state, "_livepeer_client", None)
         if client is None:
-            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+            raise HTTPError(503, "Remote inference not initialized — check Discovery URL")
 
         settings = self.state.app_settings
         runner = client.get_runner(

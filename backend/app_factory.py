@@ -173,11 +173,11 @@ def create_app(
 
     # Initialize Livepeer client when remote inference is configured
     settings = handler.settings.get_settings_snapshot()
-    if settings.livepeer_signer_url:
+    if settings.livepeer_discovery_url:
         from services.livepeer_client import LivepeerClient
         results_dir = Path(handler.config.outputs_dir) / "livepeer"
         client = LivepeerClient(
-            signer_url=settings.livepeer_signer_url,
+            discovery_url=settings.livepeer_discovery_url,
             results_dir=results_dir,
             api_key=settings.livepeer_api_key,
         )

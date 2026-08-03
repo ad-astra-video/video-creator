@@ -59,8 +59,8 @@ async def discover_providers(
 ) -> dict[str, Any]:
     """Trigger a fresh discovery sweep."""
     settings = handler.settings.get_settings_snapshot()
-    if not settings.livepeer_signer_url:
-        return {"error": "Signer URL not configured"}
+    if not settings.livepeer_discovery_url:
+        return {"error": "Discovery URL not configured"}
 
     livepeer_client = getattr(handler.state, "_livepeer_client", None)
     if not livepeer_client:

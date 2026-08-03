@@ -51,11 +51,11 @@ class ImageGenerationHandler(StateHandlerBase):
         self._zit_api_client = zit_api_client
 
     def generate(self, req: GenerateImageRequest) -> GenerateImageResponse:
-        # A configured Livepeer signer URL is the authoritative routing decision:
+        # A configured Livepeer Discovery URL is the authoritative routing decision:
         # all generation goes through remote Livepeer, no FAL/LTX API key needed.
         if (
             self.state.app_settings.livepeer_image_enabled
-            and self.state.app_settings.livepeer_signer_url.strip()
+            and self.state.app_settings.livepeer_discovery_url.strip()
         ):
             return self._generate_via_livepeer(req)
 
@@ -266,7 +266,7 @@ class ImageGenerationHandler(StateHandlerBase):
 
         client = getattr(self.state, "_livepeer_client", None)
         if client is None:
-            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+            raise HTTPError(503, "Remote inference not initialized — check Discovery URL")
 
         settings = self.state.app_settings
         runner = client.get_runner(

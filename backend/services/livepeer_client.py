@@ -44,8 +44,8 @@ class RunnerInfo:
 class LivepeerClient:
     """Discovers and calls LTX-Desktop runners through Livepeer orchestrators."""
 
-    def __init__(self, signer_url: str, results_dir: Path, api_key: str = "") -> None:
-        self.signer_url = signer_url
+    def __init__(self, discovery_url: str, results_dir: Path, api_key: str = "") -> None:
+        self.discovery_url = discovery_url
         self.results_dir = results_dir
         self.api_key = api_key
         self.results_dir.mkdir(parents=True, exist_ok=True)
@@ -71,46 +71,28 @@ class LivepeerClient:
         return {}
 
     async def discover(self) -> list[RunnerInfo]:
-        """Query orchestrator for available runners.
+        """Query the configured discovery URL directly for available runners.
 
-        Supports both the real go-livepeer orchestrator format (discovery returns
+        The value stored in settings is used verbatim as the discovery endpoint —
+        the client does NOT append /discovery or probe /orchestrators. Supports
+        both the real go-livepeer orchestrator format (discovery returns
         ``[{address, runners: [{url, gpu, app, mode, ...}]}]``) and the legacy
         flat ``[{runner_id, runner_url}]`` mock format.
         """
         try:
-            signer_base = self.signer_url.rstrip("/")
+            url = self.discovery_url.rstrip("/")
+            if not url:
+                return []
             async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self._ssl_ctx())) as session:
-                # Get orchestrator list from signer. The real go-livepeer
-                # orchestrator does not expose /orchestrators (404) — in that
-                # case fall back to treating the signer itself as the single
-                # orchestrator, since go-livepeer serves /discovery directly.
-                orch_urls: list[str] = []
-                orch_url = f"{signer_base}/orchestrators"
+                runners: dict[str, RunnerInfo] = {}
                 try:
                     async with session.get(
-                        orch_url, timeout=aiohttp.ClientTimeout(total=10), headers=self._auth_headers()
+                        url,
+                        params={"app": "ltx-desktop"},
+                        timeout=aiohttp.ClientTimeout(total=10),
+                        headers=self._auth_headers(),
                     ) as resp:
                         if resp.status == 200:
-                            orch_data = await resp.json()
-                            orch_urls = orch_data if isinstance(orch_data, list) else []
-                except Exception:
-                    orch_urls = []
-                if not orch_urls:
-                    orch_urls = [signer_base]
-
-                # Query each orchestrator for runners
-                runners: dict[str, RunnerInfo] = {}
-                for orch in orch_urls:
-                    try:
-                        discovery_url = f"{orch.rstrip('/')}/discovery"
-                        async with session.get(
-                            discovery_url,
-                            params={"app": "ltx-desktop"},
-                            timeout=aiohttp.ClientTimeout(total=10),
-                            headers=self._auth_headers(),
-                        ) as resp:
-                            if resp.status != 200:
-                                continue
                             data = await resp.json()
                             for runner_raw in self._parse_discovery(data):
                                 rid = runner_raw.get("runner_id", "")
@@ -130,8 +112,10 @@ class LivepeerClient:
                                         url=runner_raw.get("runner_url", "") or runner_raw.get("url", ""),
                                         raw=runner_raw,
                                     )
-                    except Exception:
-                        logger.debug("Failed to query orchestrator %s", orch, exc_info=True)
+                        else:
+                            logger.warning("Discovery endpoint returned HTTP %d", resp.status)
+                except Exception:
+                    logger.exception("Discovery request failed")
 
                 self._runners = runners
                 logger.info("Discovered %d runners", len(self._runners))

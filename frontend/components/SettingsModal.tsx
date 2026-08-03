@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Download, Film, Folder, HardDrive, Info, KeyRound, Layers, Network, Settings, Sparkles, X, Zap } from 'lucide-react'
+import { AlertCircle, Check, Download, Film, Folder, HardDrive, Info, KeyRound, Layers, Settings, Sparkles, X, Zap } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from './ui/button'
 import { BaseModelSection } from './settings/BaseModelSection'
@@ -92,8 +92,11 @@ function SettingToggle({ title, description, enabled, onToggle, statusOn, status
   )
 }
 
-/** A per-section "Generate with Livepeer" toggle. When on (and a signer URL is configured),
- *  that generation type routes through remote Livepeer instead of the LTX/FAL API. */
+/** A per-section "Generate with Livepeer" option. Styled as the same selectable
+ *  card as the "Generate With API" / local options above it, so Video, Image and
+ *  Text Encoding sections look consistent. When on (and a Discovery URL is
+ *  configured), that generation type routes through remote Livepeer instead of
+ *  the LTX/FAL API. */
 function LivepeerToggle({ enabled, onToggle, disabled, label, description }: {
   enabled: boolean
   onToggle: () => void
@@ -102,36 +105,42 @@ function LivepeerToggle({ enabled, onToggle, disabled, label, description }: {
   description?: string
 }) {
   return (
-    <div className="mt-3 pt-3 border-t border-zinc-700/50 flex items-start justify-between gap-4">
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
-          </svg>
-          <label className="text-xs font-medium text-white">{label ?? 'Generate with Livepeer'}</label>
+    <div
+      className={`bg-zinc-800/50 rounded-lg p-4 border-2 transition-colors cursor-pointer ${
+        enabled ? 'border-emerald-500' : 'border-transparent hover:border-zinc-600'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      onClick={disabled ? undefined : onToggle}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+            <span className="text-sm font-medium text-white">{label ?? 'Generate with Livepeer'}</span>
+          </div>
+          {description && <p className="text-xs text-zinc-400 mt-1">{description}</p>}
         </div>
-        {description && <p className="text-xs text-zinc-500 mt-0.5">{description}</p>}
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+          enabled ? 'border-emerald-500 bg-emerald-500' : 'border-zinc-600'
+        }`}>
+          {enabled && <Check className="h-3 w-3 text-white" />}
+        </div>
       </div>
-      <button
-        type="button"
-        onClick={disabled ? undefined : onToggle}
-        disabled={disabled}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-          enabled ? 'bg-emerald-500' : 'bg-zinc-700'
-        } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-      >
-        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-          enabled ? 'translate-x-5' : 'translate-x-0'
-        }`} />
-      </button>
+      {disabled && !enabled && (
+        <div className="mt-2 text-xs text-amber-400 flex items-center gap-1.5">
+          <AlertCircle className="h-3 w-3" />
+          Requires a Discovery URL in the API Keys tab.
+        </div>
+      )}
     </div>
   )
 }
 
 export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProps) {
-  const { settings, updateSettings, saveLtxApiKey, saveFalApiKey, saveGeminiApiKey, saveLivepeerSignerUrl, saveLivepeerApiKey, forceApiGenerations, cudaAvailable } = useAppSettings()
+  const { settings, updateSettings, refreshSettings, saveLtxApiKey, saveFalApiKey, saveGeminiApiKey, saveLivepeerDiscoveryUrl, saveLivepeerApiKey, forceApiGenerations, cudaAvailable } = useAppSettings()
   const onSettingsChange = (next: AppSettings) => updateSettings(next)
   const [activeTab, setActiveTab] = useState<TabId>('general')
   const ltxApiKey = useApiKeyFocus(isOpen, activeTab, setActiveTab)
@@ -161,13 +170,13 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   const [modelLicenseLoading, setModelLicenseLoading] = useState(false)
   const [showModelLicense, setShowModelLicense] = useState(false)
   // Remote inference state
-  const [livepeerSignerUrlInput, setLivepeerSignerUrlInput] = useState('')
+  const [livepeerDiscoveryUrlInput, setLivepeerDiscoveryUrlInput] = useState('')
   const [livepeerApiKeyInput, setLivepeerApiKeyInput] = useState('')
   const [showProviders, setShowProviders] = useState(false)
   const [providers, setProviders] = useState<Array<{
     runner_id: string; url: string;
-    gpu: { name: string; vram_mb: number };
-    price_info: { price: number; currency: string; unit: string } | null;
+    gpu: { name?: string; vram_mb?: number };
+    price_info?: { price: number; currency: string; unit: string } | null;
     selected: boolean; excluded: boolean; status: string
   }>>([])
   const [discovering, setDiscovering] = useState(false)
@@ -180,6 +189,13 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       setActiveTab(initialTab)
     }
   }, [isOpen, initialTab])
+
+  // Reflect the saved Livepeer discovery URL in the input field.
+  useEffect(() => {
+    if (isOpen) {
+      setLivepeerDiscoveryUrlInput(settings.livepeerDiscoveryUrl || '')
+    }
+  }, [isOpen, settings.livepeerDiscoveryUrl])
 
   // The Models tab is hidden in force-API mode; don't let the selection get stuck there
   // (e.g. via initialTab or a stale value).
@@ -282,11 +298,11 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   }
 
   useEffect(() => {
-    if (!isOpen || !settings.hasLivepeerSignerUrl) return
+    if (!isOpen || !settings.hasLivepeerDiscoveryUrl) return
     void fetchProviders()
     const interval = setInterval(() => { void fetchProviders() }, 30000)
     return () => clearInterval(interval)
-  }, [isOpen, settings.hasLivepeerSignerUrl])
+  }, [isOpen, settings.hasLivepeerDiscoveryUrl])
 
   const discoverProviders = async () => {
     setDiscovering(true)
@@ -295,7 +311,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       if (result.ok) {
         setProviders(result.data.providers || [])
         // Refresh settings in case auto-select changed
-        await window.electronAPI.refreshSettings?.()
+        await refreshSettings()
       }
     } finally {
       setDiscovering(false)
@@ -339,10 +355,14 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     })
   }
 
-  const handleToggleLocalEncoder = () => {
+  // Text encoding is a 3-way exclusive choice
+  // Local Encoder, or Livepeer can be active at a time. Selecting any one
+  // clears the other two.
+  const handleSelectTextEncoder = (mode: 'ltx' | 'local' | 'livepeer') => {
     onSettingsChange({
       ...settings,
-      useLocalTextEncoder: !settings.useLocalTextEncoder,
+      useLocalTextEncoder: mode === 'local',
+      livepeerTextEncodingEnabled: mode === 'livepeer',
     })
   }
 
@@ -557,9 +577,9 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   <LivepeerToggle
                     enabled={settings.livepeerVideoEnabled}
                     onToggle={() => onSettingsChange({ ...settings, livepeerVideoEnabled: !settings.livepeerVideoEnabled })}
-                    disabled={!settings.hasLivepeerSignerUrl}
+                    disabled={!settings.hasLivepeerDiscoveryUrl}
                     label="Generate with Livepeer"
-                    description="Route video generation to your own Livepeer orchestrator/runner. Requires a signer URL in the API Keys tab."
+                    description="Route video generation to your own Livepeer orchestrator/runner. Requires a Discovery URL in the API Keys tab."
                   />
                 </div>
               )}
@@ -614,9 +634,9 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   <LivepeerToggle
                     enabled={settings.livepeerImageEnabled}
                     onToggle={() => onSettingsChange({ ...settings, livepeerImageEnabled: !settings.livepeerImageEnabled })}
-                    disabled={!settings.hasLivepeerSignerUrl}
+                    disabled={!settings.hasLivepeerDiscoveryUrl}
                     label="Generate with Livepeer"
-                    description="Route image generation and editing to your own Livepeer orchestrator/runner. Requires a signer URL in the API Keys tab."
+                    description="Route image generation and editing to your own Livepeer orchestrator/runner. Requires a Discovery URL in the API Keys tab."
                   />
                 </div>
               )}
@@ -639,15 +659,15 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                 {/* LTX API Option (Default) */}
                 <div
                   className={`bg-zinc-800/50 rounded-lg p-4 border-2 transition-colors cursor-pointer ${
-                    !settings.useLocalTextEncoder ? 'border-blue-500' : 'border-transparent hover:border-zinc-600'
+                    !settings.useLocalTextEncoder && !settings.livepeerTextEncodingEnabled ? 'border-blue-500' : 'border-transparent hover:border-zinc-600'
                   }`}
                   onClick={() => {
-                    if (!settings.useLocalTextEncoder) return
+                    if (!settings.useLocalTextEncoder && !settings.livepeerTextEncodingEnabled) return
                     if (!settings.hasLtxApiKey) {
                       ltxApiKey.openAndFocus()
                       return
                     }
-                    handleToggleLocalEncoder()
+                    handleSelectTextEncoder('ltx')
                   }}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -662,14 +682,14 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                       </p>
                     </div>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      !settings.useLocalTextEncoder ? 'border-blue-500 bg-blue-500' : 'border-zinc-600'
+                      !settings.useLocalTextEncoder && !settings.livepeerTextEncodingEnabled ? 'border-blue-500 bg-blue-500' : 'border-zinc-600'
                     }`}>
-                      {!settings.useLocalTextEncoder && <Check className="h-3 w-3 text-white" />}
+                      {!settings.useLocalTextEncoder && !settings.livepeerTextEncodingEnabled && <Check className="h-3 w-3 text-white" />}
                     </div>
                   </div>
 
                   {/* Warning when selected but no key */}
-                  {!settings.useLocalTextEncoder && !settings.hasLtxApiKey && (
+                  {!settings.useLocalTextEncoder && !settings.livepeerTextEncodingEnabled && !settings.hasLtxApiKey && (
                     <div className="mt-2 text-xs text-amber-400 flex items-center gap-1.5">
                       <AlertCircle className="h-3 w-3" />
                       API key required — configure it in the API Keys tab.
@@ -677,7 +697,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   )}
 
                   {/* Prompt Cache Size — only relevant for API text encoding */}
-                  {!settings.useLocalTextEncoder && settings.hasLtxApiKey && (
+                  {!settings.useLocalTextEncoder && !settings.livepeerTextEncodingEnabled && settings.hasLtxApiKey && (
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-700/50">
                       <div>
                         <label className="text-xs text-white">Prompt Cache</label>
@@ -699,9 +719,9 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                 {/* Local Encoder Option */}
                 <div
                   className={`bg-zinc-800/50 rounded-lg p-4 border-2 transition-colors cursor-pointer ${
-                    settings.useLocalTextEncoder ? 'border-blue-500' : 'border-transparent hover:border-zinc-600'
+                    settings.useLocalTextEncoder && !settings.livepeerTextEncodingEnabled ? 'border-blue-500' : 'border-transparent hover:border-zinc-600'
                   }`}
-                  onClick={() => !settings.useLocalTextEncoder && handleToggleLocalEncoder()}
+                  onClick={() => handleSelectTextEncoder('local')}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
@@ -717,14 +737,14 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                       </p>
                     </div>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      settings.useLocalTextEncoder ? 'border-blue-500 bg-blue-500' : 'border-zinc-600'
+                      settings.useLocalTextEncoder && !settings.livepeerTextEncodingEnabled ? 'border-blue-500 bg-blue-500' : 'border-zinc-600'
                     }`}>
-                      {settings.useLocalTextEncoder && <Check className="h-3 w-3 text-white" />}
+                      {settings.useLocalTextEncoder && !settings.livepeerTextEncodingEnabled && <Check className="h-3 w-3 text-white" />}
                     </div>
                   </div>
 
                   {/* Download Status - show when this option is selected */}
-                  {settings.useLocalTextEncoder && (
+                  {settings.useLocalTextEncoder && !settings.livepeerTextEncodingEnabled && (
                     <div className="mt-3 pt-3 border-t border-zinc-700/50">
                       {textEncoderRecommendation?.cp_to_download === null ? (
                         <div className="flex items-center gap-2 text-xs text-green-400">
@@ -787,8 +807,17 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
 
                 <LivepeerToggle
                   enabled={settings.livepeerTextEncodingEnabled}
-                  onToggle={() => onSettingsChange({ ...settings, livepeerTextEncodingEnabled: !settings.livepeerTextEncodingEnabled })}
-                  disabled={!settings.hasLivepeerSignerUrl}
+                  onToggle={() => {
+                    // Only one of LTX API / Local Encoder / Livepeer can be active.
+                    // Turning Livepeer on selects it (clearing the others); turning
+                    // it off falls back to the LTX API (default).
+                    if (settings.livepeerTextEncodingEnabled) {
+                      handleSelectTextEncoder('ltx')
+                    } else {
+                      handleSelectTextEncoder('livepeer')
+                    }
+                  }}
+                  disabled={!settings.hasLivepeerDiscoveryUrl}
                   label="Encode with Livepeer"
                   description="Use the remote runner's text encoder for prompt encoding when generating through Livepeer."
                 />
@@ -1145,25 +1174,25 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                 </p>
 
                 <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
-                  {/* Signer URL */}
+                  {/* Discovery URL */}
                   <div className="space-y-2">
-                    <label className="block text-xs text-zinc-300 font-medium">Signer / Orchestrator URL</label>
+                    <label className="block text-xs text-zinc-300 font-medium">Discovery URL</label>
                     <div className="flex gap-2">
                       <input
                         type="url"
-                        value={livepeerSignerUrlInput}
-                        onChange={(e) => setLivepeerSignerUrlInput(e.target.value)}
-                        placeholder="https://your-signer.example.com"
+                        value={livepeerDiscoveryUrlInput}
+                        onChange={(e) => setLivepeerDiscoveryUrlInput(e.target.value)}
+                        placeholder="https://orchestrator:8935/discovery"
                         className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                       <button
                         onClick={async () => {
-                          const trimmed = livepeerSignerUrlInput.trim()
+                          const trimmed = livepeerDiscoveryUrlInput.trim()
                           if (!trimmed) return
-                          await saveLivepeerSignerUrl(trimmed)
-                          setLivepeerSignerUrlInput('')
+                          await saveLivepeerDiscoveryUrl(trimmed)
+                          setLivepeerDiscoveryUrlInput('')
                         }}
-                        disabled={!livepeerSignerUrlInput.trim()}
+                        disabled={!livepeerDiscoveryUrlInput.trim()}
                         className="px-3 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                       >
                         Save
@@ -1178,7 +1207,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                       <LtxApiKeyInput
                         value={livepeerApiKeyInput}
                         onChange={(e) => setLivepeerApiKeyInput(e.target.value)}
-                        placeholder={settings.hasLivepeerApiKey ? 'Enter new key to replace...' : 'Sent as Authorization: Bearer'}
+                        placeholder={settings.hasLivepeerApiKey ? 'Enter new key to replace...' : 'Enter your Livepeer API key...'}
                         className="flex-1"
                       />
                       <button
@@ -1197,17 +1226,17 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   </div>
 
                   <div className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1.5 ${
-                    settings.hasLivepeerSignerUrl
+                    settings.hasLivepeerDiscoveryUrl
                       ? 'bg-green-500/10 text-green-400'
                       : 'bg-zinc-800 text-zinc-500'
                   }`}>
-                    {settings.hasLivepeerSignerUrl ? (
+                    {settings.hasLivepeerDiscoveryUrl ? (
                       <>
-                        <Check className="h-3 w-3" /> Signer configured
+                        <Check className="h-3 w-3" /> Discovery configured
                       </>
                     ) : (
                       <>
-                        <AlertCircle className="h-3 w-3" /> No signer URL set
+                        <AlertCircle className="h-3 w-3" /> No Discovery URL set
                       </>
                     )}
                   </div>
@@ -1216,7 +1245,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   <div className="pt-1">
                     <button
                       onClick={() => setShowProviders(s => !s)}
-                      disabled={!settings.hasLivepeerSignerUrl}
+                      disabled={!settings.hasLivepeerDiscoveryUrl}
                       className="w-full flex items-center justify-between px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-emerald-300 hover:bg-zinc-800 disabled:text-zinc-600 disabled:bg-zinc-900 disabled:cursor-not-allowed transition-colors"
                     >
                       <span className="inline-flex items-center gap-2">
@@ -1246,7 +1275,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
 
                         {providers.length === 0 && (
                           <p className="text-xs text-zinc-500">
-                            No providers found. Set a signer URL above and click Refresh.
+                            No providers found. Set a Discovery URL above and click Refresh.
                           </p>
                         )}
 
@@ -1275,7 +1304,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                                     {p.gpu?.name || 'Unknown GPU'}
                                   </span>
                                   <span className="text-xs text-zinc-500">
-                                    {p.gpu ? `${Math.round(p.gpu.vram_mb / 1024)} GB` : ''}
+                                    {p.gpu?.vram_mb ? `${Math.round(p.gpu.vram_mb / 1024)} GB` : ''}
                                   </span>
                                   <span className={`text-[10px] px-1.5 py-0.5 rounded ${
                                     p.status === 'online' || p.status === 'ready'

@@ -27,7 +27,8 @@ export interface AppSettings {
   livepeerVideoEnabled: boolean
   livepeerImageEnabled: boolean
   livepeerTextEncodingEnabled: boolean
-  hasLivepeerSignerUrl: boolean
+  livepeerDiscoveryUrl: string
+  hasLivepeerDiscoveryUrl: boolean
   hasLivepeerApiKey: boolean
   livepeerSelectedRunnerId: string
   livepeerExcludedRunnerIds: string[]
@@ -53,7 +54,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   livepeerVideoEnabled: true,
   livepeerImageEnabled: true,
   livepeerTextEncodingEnabled: true,
-  hasLivepeerSignerUrl: false,
+  livepeerDiscoveryUrl: '',
+  hasLivepeerDiscoveryUrl: false,
   hasLivepeerApiKey: false,
   livepeerSelectedRunnerId: '',
   livepeerExcludedRunnerIds: [],
@@ -70,7 +72,7 @@ interface AppSettingsContextValue {
   saveLtxApiKey: (value: string) => Promise<void>
   saveFalApiKey: (value: string) => Promise<void>
   saveGeminiApiKey: (value: string) => Promise<void>
-  saveLivepeerSignerUrl: (value: string) => Promise<void>
+  saveLivepeerDiscoveryUrl: (value: string) => Promise<void>
   saveLivepeerApiKey: (value: string) => Promise<void>
   forceApiGenerations: boolean
   shouldVideoGenerateWithLtxApi: boolean
@@ -113,7 +115,8 @@ function normalizeAppSettings(data: Partial<AppSettings>): AppSettings {
     livepeerVideoEnabled: data.livepeerVideoEnabled ?? DEFAULT_APP_SETTINGS.livepeerVideoEnabled,
     livepeerImageEnabled: data.livepeerImageEnabled ?? DEFAULT_APP_SETTINGS.livepeerImageEnabled,
     livepeerTextEncodingEnabled: data.livepeerTextEncodingEnabled ?? DEFAULT_APP_SETTINGS.livepeerTextEncodingEnabled,
-    hasLivepeerSignerUrl: data.hasLivepeerSignerUrl ?? DEFAULT_APP_SETTINGS.hasLivepeerSignerUrl,
+    livepeerDiscoveryUrl: data.livepeerDiscoveryUrl ?? DEFAULT_APP_SETTINGS.livepeerDiscoveryUrl,
+    hasLivepeerDiscoveryUrl: data.hasLivepeerDiscoveryUrl ?? DEFAULT_APP_SETTINGS.hasLivepeerDiscoveryUrl,
     hasLivepeerApiKey: data.hasLivepeerApiKey ?? DEFAULT_APP_SETTINGS.hasLivepeerApiKey,
     livepeerSelectedRunnerId: data.livepeerSelectedRunnerId ?? DEFAULT_APP_SETTINGS.livepeerSelectedRunnerId,
     livepeerExcludedRunnerIds: data.livepeerExcludedRunnerIds ?? DEFAULT_APP_SETTINGS.livepeerExcludedRunnerIds,
@@ -262,7 +265,7 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
         hasLtxApiKey: _ltxKey,
         hasFalApiKey: _falKey,
         hasGeminiApiKey: _geminiKey,
-        hasLivepeerSignerUrl: _lpSigner,
+        hasLivepeerDiscoveryUrl: _lpDiscovery,
         hasLivepeerApiKey: _lpKey,
         modelsDir: _modelsDir,
         ...syncPayload
@@ -307,8 +310,17 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
     await refreshSettings()
   }, [refreshSettings])
 
-  const saveLivepeerSignerUrl = useCallback(async (value: string) => {
-    const result = await ApiClient.updateSettings({ livepeerSignerUrl: value })
+  const saveLivepeerDiscoveryUrl = useCallback(async (value: string) => {
+    // Default every per-section generation method to Livepeer whenever a Discovery
+    // URL is configured. Persisted atomically with the URL so the subsequent
+    // refreshSettings() returns the new defaults. Users can still switch each
+    // section off individually in settings.
+    const result = await ApiClient.updateSettings({
+      livepeerDiscoveryUrl: value,
+      livepeerVideoEnabled: true,
+      livepeerImageEnabled: true,
+      livepeerTextEncodingEnabled: true,
+    })
     if (!result.ok) {
       throw new Error(result.error.message)
     }
@@ -338,14 +350,14 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
       saveLtxApiKey,
       saveFalApiKey,
       saveGeminiApiKey,
-      saveLivepeerSignerUrl,
+      saveLivepeerDiscoveryUrl,
       saveLivepeerApiKey,
       forceApiGenerations,
       shouldVideoGenerateWithLtxApi,
       shouldImageGenerateWithFalApi,
       cudaAvailable,
     }),
-    [cudaAvailable, forceApiGenerations, isLoaded, refreshSettings, runtimePolicyLoaded, saveFalApiKey, saveGeminiApiKey, saveLtxApiKey, saveLivepeerSignerUrl, saveLivepeerApiKey, settings, shouldVideoGenerateWithLtxApi, shouldImageGenerateWithFalApi, updateSettings],
+    [cudaAvailable, forceApiGenerations, isLoaded, refreshSettings, runtimePolicyLoaded, saveFalApiKey, saveGeminiApiKey, saveLtxApiKey, saveLivepeerDiscoveryUrl, saveLivepeerApiKey, settings, shouldVideoGenerateWithLtxApi, shouldImageGenerateWithFalApi, updateSettings],
   )
 
   return <AppSettingsContext.Provider value={contextValue}>{children}</AppSettingsContext.Provider>

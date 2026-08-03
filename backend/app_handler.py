@@ -201,7 +201,7 @@ class AppHandler:
         self.runtime_policy = RuntimePolicyHandler(
             config=config,
             remote_livepeer_active=lambda: bool(
-                self.state.app_settings.livepeer_signer_url.strip()
+                self.state.app_settings.livepeer_discovery_url.strip()
             ),
         )
 

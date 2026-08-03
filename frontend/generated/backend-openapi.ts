@@ -810,14 +810,14 @@ export interface components {
             geminiApiKey?: string | null;
             /** Livepeerapikey */
             livepeerApiKey?: string | null;
+            /** Livepeerdiscoveryurl */
+            livepeerDiscoveryUrl?: string | null;
             /** Livepeerexcludedrunnerids */
             livepeerExcludedRunnerIds?: string[] | null;
             /** Livepeerimageenabled */
             livepeerImageEnabled?: boolean | null;
             /** Livepeerselectedrunnerid */
             livepeerSelectedRunnerId?: string | null;
-            /** Livepeersignerurl */
-            livepeerSignerUrl?: string | null;
             /** Livepeertextencodingenabled */
             livepeerTextEncodingEnabled?: boolean | null;
             /** Livepeervideoenabled */
@@ -2071,15 +2071,20 @@ export interface components {
              */
             hasLivepeerApiKey: boolean;
             /**
-             * Haslivepeersignerurl
+             * Haslivepeerdiscoveryurl
              * @default false
              */
-            hasLivepeerSignerUrl: boolean;
+            hasLivepeerDiscoveryUrl: boolean;
             /**
              * Hasltxapikey
              * @default false
              */
             hasLtxApiKey: boolean;
+            /**
+             * Livepeerdiscoveryurl
+             * @default
+             */
+            livepeerDiscoveryUrl: string;
             /** Livepeerexcludedrunnerids */
             livepeerExcludedRunnerIds?: string[];
             /**

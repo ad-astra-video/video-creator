@@ -16,7 +16,7 @@ export interface ApiGatewaySection {
   // Livepeer-specific second field (API key) rendered alongside the URL/primary field.
   primaryLabel?: string
   primaryPlaceholder?: string
-  onSaveLivepeer?: (signerUrl: string, apiKey: string) => Promise<void> | void
+  onSaveLivepeer?: (discoveryUrl: string, apiKey: string) => Promise<void> | void
   onGetKey?: () => void
   getKeyLabel?: string
 }
@@ -86,13 +86,13 @@ export function ApiGatewayModal({
   useEffect(() => {
     if (!isOpen) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !blocking) {
+      if (event.key === 'Escape') {
         onClose()
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [blocking, isOpen, onClose])
+  }, [isOpen, onClose])
 
   const handleSave = async (section: ApiGatewaySection) => {
     const keyType = section.keyType
@@ -101,7 +101,7 @@ export function ApiGatewayModal({
       const url = (values.livepeer ?? '').trim()
       const key = livepeerKey.trim()
       if (!url) {
-        setErrors((prev) => ({ ...prev, livepeer: `Please enter ${section.primaryLabel ?? 'a Livepeer signer URL'}.` }))
+        setErrors((prev) => ({ ...prev, livepeer: `Please enter ${section.primaryLabel ?? 'a Livepeer Discovery URL'}.` }))
         return
       }
       setIsSaving((prev) => ({ ...prev, livepeer: true }))
@@ -161,15 +161,13 @@ export function ApiGatewayModal({
             </div>
             <h2 className="text-base font-semibold text-zinc-100">{title}</h2>
           </div>
-          {!blocking && (
-            <button
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
-              aria-label="Close API gateway modal"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+            aria-label="Close API gateway modal"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="space-y-5 px-5 py-5">
@@ -211,11 +209,12 @@ export function ApiGatewayModal({
                     <div className="space-y-2">
                       {isLivepeer ? (
                         <>
-                          <label className="block text-xs text-zinc-300">{section.primaryLabel ?? 'Livepeer signer URL'}</label>
+                          <label className="block text-xs text-zinc-300">{section.primaryLabel ?? 'Livepeer Discovery URL'}</label>
                           <LtxApiKeyInput
                             value={values.livepeer ?? ''}
                             onChange={(event) => setValues((prev) => ({ ...prev, livepeer: event.target.value }))}
-                            placeholder={section.primaryPlaceholder ?? 'https://your-signer.example.com'}
+                            placeholder={section.primaryPlaceholder ?? 'https://orchestrator:8935/discovery'}
+                            masked={false}
                             className="w-full"
                           />
                           <label className="block text-xs text-zinc-300">{section.inputLabel}</label>
@@ -266,8 +265,14 @@ export function ApiGatewayModal({
           </div>
 
           {blocking && requiredMissing && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-              Required API keys are missing. Add them to continue.
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+              <span className="text-xs text-amber-200">Required API keys are missing. Add them to continue, or skip for now.</span>
+              <button
+                onClick={onClose}
+                className="shrink-0 rounded-lg border border-zinc-600 px-3 py-1 text-xs text-zinc-200 transition-colors hover:bg-zinc-800"
+              >
+                Skip for now
+              </button>
             </div>
           )}
 

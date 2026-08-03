@@ -87,10 +87,10 @@ class VideoGenerationHandler(StateHandlerBase):
 
     def generate(self, req: GenerateVideoRequest) -> GenerateVideoResponse:
         # Route video through remote Livepeer only when the user has enabled
-        # video-via-Livepeer AND a signer URL is configured.
+        # video-via-Livepeer AND a Discovery URL is configured.
         if (
             self.state.app_settings.livepeer_video_enabled
-            and self.state.app_settings.livepeer_signer_url.strip()
+            and self.state.app_settings.livepeer_discovery_url.strip()
         ):
             return self._generate_via_livepeer(req)
 
@@ -195,7 +195,7 @@ class VideoGenerationHandler(StateHandlerBase):
 
         client = getattr(self.state, "_livepeer_client", None)
         if client is None:
-            raise HTTPError(503, "Remote inference not initialized — check signer URL")
+            raise HTTPError(503, "Remote inference not initialized — check Discovery URL")
 
         settings = self.state.app_settings
         runner = client.get_runner(

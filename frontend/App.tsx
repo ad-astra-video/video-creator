@@ -30,7 +30,7 @@ type LtxUpgradeRecommendation = Extract<LtxRecommendation, { status: 'upgrade' }
 function AppContent() {
   const { currentView } = useView()
   const { connected, processStatus, isLoading: backendLoading } = useBackend()
-  const { settings, saveLtxApiKey, saveFalApiKey, saveLivepeerSignerUrl, saveLivepeerApiKey, forceApiGenerations, isLoaded, runtimePolicyLoaded } = useAppSettings()
+  const { settings, saveLtxApiKey, saveFalApiKey, saveLivepeerDiscoveryUrl, saveLivepeerApiKey, forceApiGenerations, isLoaded, runtimePolicyLoaded } = useAppSettings()
   // Always mounted here (unlike GenSpace, which unmounts on every view/tab switch) so a
   // generation that finishes while its project isn't open still gets persisted.
   useGenerationRecoveryWatcher()
@@ -49,6 +49,10 @@ function AppContent() {
     null,
   )
   const setupCompletionInFlightRef = useRef<Promise<void> | null>(null)
+  // When the user dismisses (skips) the forced API-key gateway, remember it for this
+  // session so the blocking modal does not instantly re-open. Any later explicit
+  // "open api gateway" action resets it.
+  const gatewayDismissedRef = useRef(false)
 
   type ApiGatewayRequest = {
     requiredKeys: Array<'ltx' | 'fal' | 'livepeer'>
@@ -85,6 +89,7 @@ function AppContent() {
         blocking: detail.blocking ?? false,
         includeOptionalMissing: detail.includeOptionalMissing ?? false,
       })
+      gatewayDismissedRef.current = false
     }
     window.addEventListener('open-api-gateway', handler)
     return () => window.removeEventListener('open-api-gateway', handler)
@@ -185,8 +190,12 @@ function AppContent() {
     [saveLtxApiKey],
   )
 
-  // When remote inference is enabled with a signer URL, skip GPU/model setup
-  const isRemoteMode = isLoaded && settings.remoteInferenceEnabled && settings.hasLivepeerSignerUrl
+  // When remote inference is enabled with a Discovery URL, skip GPU/model setup
+  const isRemoteMode = isLoaded && settings.remoteInferenceEnabled && settings.hasLivepeerDiscoveryUrl
+
+  // A configured Livepeer Discovery URL satisfies the API-key requirement for the
+  // LTX/FAL providers, so those keys are no longer required.
+  const livepeerConfigured = settings.hasLivepeerDiscoveryUrl
 
   const isForcedFirstRun =
     setupState !== 'loading' && setupState.needsSetup && !setupState.needsLicense && forceApiGenerations
@@ -373,12 +382,12 @@ function AppContent() {
 
   const showGlobalControls = currentView !== 'home' && connected && setupState !== 'loading' && (!setupState.needsSetup || isRemoteMode)
   const shouldBlockUntilSettingsLoaded = forceApiGenerations && !isLoaded
-  const shouldShowForcedFirstRunUpsell = isForcedFirstRun && isLoaded && !settings.hasLtxApiKey
-  const shouldShowGlobalForcedUpsell = forceApiGenerations && setupState !== 'loading' && !setupState.needsSetup && isLoaded && !settings.hasLtxApiKey
+  const shouldShowForcedFirstRunUpsell = isForcedFirstRun && isLoaded && !settings.hasLtxApiKey && !livepeerConfigured
+  const shouldShowGlobalForcedUpsell = forceApiGenerations && setupState !== 'loading' && !setupState.needsSetup && isLoaded && !settings.hasLtxApiKey && !livepeerConfigured
   const shouldBlockForLtxKey = shouldShowForcedFirstRunUpsell || shouldShowGlobalForcedUpsell
 
   useEffect(() => {
-    if (shouldBlockForLtxKey && apiGatewayRequest === null) {
+    if (shouldBlockForLtxKey && apiGatewayRequest === null && !gatewayDismissedRef.current) {
       setApiGatewayRequest({
         requiredKeys: ['ltx'],
         title: 'Connect API Keys',
@@ -407,7 +416,7 @@ function AppContent() {
         keyType: 'ltx',
         title: 'LTX API',
         description: 'Video generation, prompt enhancement, and cloud text encoding.',
-        required: apiGatewayRequest.requiredKeys.includes('ltx'),
+        required: apiGatewayRequest.requiredKeys.includes('ltx') && !livepeerConfigured,
         isConfigured: settings.hasLtxApiKey,
         inputLabel: 'LTX API key',
         placeholder: 'Enter your LTX API key...',
@@ -419,7 +428,7 @@ function AppContent() {
         keyType: 'fal',
         title: 'FAL AI',
         description: 'Required to generate or edit images with Z Image Turbo.',
-        required: apiGatewayRequest.requiredKeys.includes('fal'),
+        required: apiGatewayRequest.requiredKeys.includes('fal') && !livepeerConfigured,
         isConfigured: settings.hasFalApiKey,
         inputLabel: 'FAL AI API key',
         placeholder: 'Enter your FAL AI API key...',
@@ -430,16 +439,16 @@ function AppContent() {
       {
         keyType: 'livepeer',
         title: 'Livepeer',
-        description: 'Route video and image generation to your own Livepeer orchestrator/runner. When a signer URL is set here, all requests go through Livepeer instead of the LTX/FAL APIs.',
+        description: 'Use Livepeer network for inference. Supports video, image and text encoding. Choose in settings which to use.',
         required: apiGatewayRequest.requiredKeys.includes('livepeer'),
-        isConfigured: settings.hasLivepeerSignerUrl,
-        primaryLabel: 'Livepeer signer URL',
-        primaryPlaceholder: 'https://your-signer.example.com',
+        isConfigured: settings.hasLivepeerDiscoveryUrl,
+        primaryLabel: 'Discovery URL',
+        primaryPlaceholder: 'https://orchestrator:8935/discovery',
         inputLabel: 'Livepeer API key',
-        placeholder: 'API key (optional; sent as Authorization: Bearer)',
-        onSave: saveLivepeerSignerUrl,
+        placeholder: 'Enter your Livepeer API key...',
+        onSave: saveLivepeerDiscoveryUrl,
         onSaveLivepeer: async (url, key) => {
-          await saveLivepeerSignerUrl(url)
+          await saveLivepeerDiscoveryUrl(url)
           if (key) {
             await saveLivepeerApiKey(key)
           }
@@ -458,11 +467,11 @@ function AppContent() {
     saveApiKeyForFirstRun,
     saveFalApiKey,
     saveLtxApiKey,
-    saveLivepeerSignerUrl,
+    saveLivepeerDiscoveryUrl,
     saveLivepeerApiKey,
     settings.hasFalApiKey,
     settings.hasLtxApiKey,
-    settings.hasLivepeerSignerUrl,
+    settings.hasLivepeerDiscoveryUrl,
   ])
 
   if (pythonReady === null) {
@@ -594,7 +603,10 @@ function AppContent() {
       <ApiGatewayModal
         isOpen={shouldShowGateway}
         blocking={apiGatewayRequest?.blocking}
-        onClose={() => setApiGatewayRequest(null)}
+        onClose={() => {
+          gatewayDismissedRef.current = true
+          setApiGatewayRequest(null)
+        }}
         title={apiGatewayRequest?.title ?? 'Connect API Keys'}
         description={apiGatewayRequest?.description ?? 'Add the required API keys to continue.'}
         sections={gatewaySections}

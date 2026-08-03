@@ -8,17 +8,19 @@ interface LtxApiKeyInputProps {
   id?: string
   stopPropagation?: boolean
   className?: string
+  /** Mask the input (password). Set false for non-secret fields like URLs. */
+  masked?: boolean
 }
 
 export const LtxApiKeyInput = forwardRef<HTMLInputElement, LtxApiKeyInputProps>(
-  ({ value, onChange, placeholder = 'Paste your API key', id, stopPropagation, className }, ref) => {
+  ({ value, onChange, placeholder = 'Paste your API key', id, stopPropagation, className, masked = true }, ref) => {
     return (
       <div className={`relative ${className ?? ''}`}>
         <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
         <input
           ref={ref}
           id={id}
-          type="password"
+          type={masked ? 'password' : 'text'}
           value={value}
           onChange={onChange}
           onClick={stopPropagation ? (e) => e.stopPropagation() : undefined}
