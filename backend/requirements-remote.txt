@@ -1,0 +1,31 @@
+# Remote-inference backend deps for LTX-Desktop (pip, uv is Device-Guard-blocked).
+# The backend imports ltx_core/ltx_pipelines at startup even in remote mode, and
+# needs the LTX diffusers fork, so we pull the same git sources pip can resolve.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch>=2.3.0
+pillow>=10.3.0
+huggingface-hub>=0.23.0
+tqdm>=4.66.0
+pynvml>=11.5.0
+psutil>=5.9.0
+pydantic>=2.7.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+aiohttp>=3.9.0
+ftfy>=6.0.0
+imageio>=2.37.2
+imageio-ffmpeg>=0.6.0
+peft>=0.13.2
+protobuf>=3.20.0
+transformers>=4.52,<5
+sentencepiece>=0.1.99
+opencv-python-headless>=4.8.0
+pyyaml
+
+# LTX-2 (identical rev to backend/pyproject.toml [tool.uv.sources])
+git+https://github.com/Lightricks/LTX-2.git@9377758131b1ffde4b7f766804590a6617bf2ab9#subdirectory=packages/ltx-core
+git+https://github.com/Lightricks/LTX-2.git@9377758131b1ffde4b7f766804590a6617bf2ab9#subdirectory=packages/ltx-pipelines
+# LTX diffusers fork (same rev as pyproject)
+git+https://github.com/huggingface/diffusers.git@01de02e8b4f2cc91df4f3e91cb6535ebcbeb490c

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import aiohttp
+import ssl
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -49,20 +50,44 @@ class LivepeerClient:
         self.results_dir.mkdir(parents=True, exist_ok=True)
         self._runners: dict[str, RunnerInfo] = {}
         self._discovery_task: asyncio.Task | None = None
+        # Self-signed test orchestrator on .8 → skip TLS verification (matches
+        # the livepeer gateway SDK's ssl=False).
+        self._ssl = ssl.create_default_context()
+        self._ssl.check_hostname = False
+        self._ssl.verify_mode = ssl.CERT_NONE
+
+    @staticmethod
+    def _ssl_ctx():
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
 
     async def discover(self) -> list[RunnerInfo]:
-        """Query orchestrator for available runners."""
+        """Query orchestrator for available runners.
+
+        Supports both the real go-livepeer orchestrator format (discovery returns
+        ``[{address, runners: [{url, gpu, app, mode, ...}]}]``) and the legacy
+        flat ``[{runner_id, runner_url}]`` mock format.
+        """
         try:
             signer_base = self.signer_url.rstrip("/")
-            async with aiohttp.ClientSession() as session:
-                # Get orchestrator list from signer
+            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self._ssl_ctx())) as session:
+                # Get orchestrator list from signer. The real go-livepeer
+                # orchestrator does not expose /orchestrators (404) — in that
+                # case fall back to treating the signer itself as the single
+                # orchestrator, since go-livepeer serves /discovery directly.
+                orch_urls: list[str] = []
                 orch_url = f"{signer_base}/orchestrators"
-                async with session.get(orch_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                    if resp.status != 200:
-                        logger.warning("Signer %s returned %s for orchestrators", self.signer_url, resp.status)
-                        return []
-                    orch_data = await resp.json()
-                    orch_urls = orch_data if isinstance(orch_data, list) else []
+                try:
+                    async with session.get(orch_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                        if resp.status == 200:
+                            orch_data = await resp.json()
+                            orch_urls = orch_data if isinstance(orch_data, list) else []
+                except Exception:
+                    orch_urls = []
+                if not orch_urls:
+                    orch_urls = [signer_base]
 
                 # Query each orchestrator for runners
                 runners: dict[str, RunnerInfo] = {}
@@ -77,12 +102,22 @@ class LivepeerClient:
                             if resp.status != 200:
                                 continue
                             data = await resp.json()
-                            for runner_raw in (data if isinstance(data, list) else []):
+                            for runner_raw in self._parse_discovery(data):
                                 rid = runner_raw.get("runner_id", "")
+                                if not rid:
+                                    # go-livepeer gives proxy URLs of the form
+                                    # .../apps/runner_XXXXX/app → take the 2nd-to-last segment
+                                    _u = (runner_raw.get("url") or "").rstrip("/")
+                                    _seg = _u.split("/")
+                                    rid = _seg[-2] if len(_seg) >= 2 else (_seg[-1] if _seg else "")
+                                elif isinstance(rid, (list, dict)):
+                                    rid = ""
+                                else:
+                                    rid = str(rid)
                                 if rid:
                                     runners[rid] = RunnerInfo(
                                         runner_id=rid,
-                                        url=runner_raw.get("runner_url", ""),
+                                        url=runner_raw.get("runner_url", "") or runner_raw.get("url", ""),
                                         raw=runner_raw,
                                     )
                     except Exception:
@@ -94,6 +129,30 @@ class LivepeerClient:
         except Exception:
             logger.exception("Discovery failed")
             return []
+
+    @staticmethod
+    def _parse_discovery(data):
+        """Normalize go-livepeer discovery output into a flat runner list.
+
+        go-livepeer returns ``[{address, runners: [ {url, gpu, app, mode, ...} ]}]``.
+        The legacy mock returned a flat ``[{runner_id, runner_url, ...}]`` list.
+        We emit the flat shape with ``runner_url``/``url`` from the nested
+        ``runners`` list so the rest of the client (and UI) sees a uniform view.
+        """
+        if not isinstance(data, list):
+            return []
+        flat = []
+        for entry in data:
+            if not isinstance(entry, dict):
+                continue
+            if "runners" in entry and isinstance(entry["runners"], list):
+                for r in entry["runners"]:
+                    item = dict(r)
+                    item.setdefault("runner_url", item.get("url", ""))
+                    flat.append(item)
+            elif "runner_id" in entry or "runner_url" in entry:
+                flat.append(entry)
+        return flat
 
     async def periodic_discovery(self, interval_s: float = 60.0) -> None:
         """Background discovery loop."""
@@ -118,7 +177,7 @@ class LivepeerClient:
         """Call a runner endpoint and return JSON."""
         runner_url = runner.url.rstrip("/") + endpoint
         logger.info("Calling runner %s %s", runner.runner_id, runner_url)
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self._ssl_ctx())) as session:
             async with session.post(
                 runner_url,
                 json=payload,
