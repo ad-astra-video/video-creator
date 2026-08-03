@@ -53,7 +53,10 @@ class ImageGenerationHandler(StateHandlerBase):
     def generate(self, req: GenerateImageRequest) -> GenerateImageResponse:
         # A configured Livepeer signer URL is the authoritative routing decision:
         # all generation goes through remote Livepeer, no FAL/LTX API key needed.
-        if self.state.app_settings.livepeer_signer_url.strip():
+        if (
+            self.state.app_settings.livepeer_image_enabled
+            and self.state.app_settings.livepeer_signer_url.strip()
+        ):
             return self._generate_via_livepeer(req)
 
         with self._generation.reserved_generation_start():

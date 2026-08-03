@@ -812,10 +812,16 @@ export interface components {
             livepeerApiKey?: string | null;
             /** Livepeerexcludedrunnerids */
             livepeerExcludedRunnerIds?: string[] | null;
+            /** Livepeerimageenabled */
+            livepeerImageEnabled?: boolean | null;
             /** Livepeerselectedrunnerid */
             livepeerSelectedRunnerId?: string | null;
             /** Livepeersignerurl */
             livepeerSignerUrl?: string | null;
+            /** Livepeertextencodingenabled */
+            livepeerTextEncodingEnabled?: boolean | null;
+            /** Livepeervideoenabled */
+            livepeerVideoEnabled?: boolean | null;
             /** Lockedseed */
             lockedSeed?: number | null;
             /** Ltxapikey */
@@ -2077,10 +2083,25 @@ export interface components {
             /** Livepeerexcludedrunnerids */
             livepeerExcludedRunnerIds?: string[];
             /**
+             * Livepeerimageenabled
+             * @default true
+             */
+            livepeerImageEnabled: boolean;
+            /**
              * Livepeerselectedrunnerid
              * @default
              */
             livepeerSelectedRunnerId: string;
+            /**
+             * Livepeertextencodingenabled
+             * @default true
+             */
+            livepeerTextEncodingEnabled: boolean;
+            /**
+             * Livepeervideoenabled
+             * @default true
+             */
+            livepeerVideoEnabled: boolean;
             /**
              * Lockedseed
              * @default 42

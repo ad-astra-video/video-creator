@@ -117,6 +117,17 @@
             ],
             "title": "Livepeerexcludedrunnerids"
           },
+          "livepeerImageEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Livepeerimageenabled"
+          },
           "livepeerSelectedRunnerId": {
             "anyOf": [
               {
@@ -138,6 +149,28 @@
               }
             ],
             "title": "Livepeersignerurl"
+          },
+          "livepeerTextEncodingEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Livepeertextencodingenabled"
+          },
+          "livepeerVideoEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Livepeervideoenabled"
           },
           "lockedSeed": {
             "anyOf": [
@@ -3569,10 +3602,25 @@
             "title": "Livepeerexcludedrunnerids",
             "type": "array"
           },
+          "livepeerImageEnabled": {
+            "default": true,
+            "title": "Livepeerimageenabled",
+            "type": "boolean"
+          },
           "livepeerSelectedRunnerId": {
             "default": "",
             "title": "Livepeerselectedrunnerid",
             "type": "string"
+          },
+          "livepeerTextEncodingEnabled": {
+            "default": true,
+            "title": "Livepeertextencodingenabled",
+            "type": "boolean"
+          },
+          "livepeerVideoEnabled": {
+            "default": true,
+            "title": "Livepeervideoenabled",
+            "type": "boolean"
           },
           "lockedSeed": {
             "default": 42,

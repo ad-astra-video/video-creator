@@ -92,8 +92,46 @@ function SettingToggle({ title, description, enabled, onToggle, statusOn, status
   )
 }
 
+/** A per-section "Generate with Livepeer" toggle. When on (and a signer URL is configured),
+ *  that generation type routes through remote Livepeer instead of the LTX/FAL API. */
+function LivepeerToggle({ enabled, onToggle, disabled, label, description }: {
+  enabled: boolean
+  onToggle: () => void
+  disabled?: boolean
+  label?: string
+  description?: string
+}) {
+  return (
+    <div className="mt-3 pt-3 border-t border-zinc-700/50 flex items-start justify-between gap-4">
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+          <label className="text-xs font-medium text-white">{label ?? 'Generate with Livepeer'}</label>
+        </div>
+        {description && <p className="text-xs text-zinc-500 mt-0.5">{description}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={disabled ? undefined : onToggle}
+        disabled={disabled}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+          enabled ? 'bg-emerald-500' : 'bg-zinc-700'
+        } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+      >
+        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+          enabled ? 'translate-x-5' : 'translate-x-0'
+        }`} />
+      </button>
+    </div>
+  )
+}
+
 export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProps) {
-  const { settings, updateSettings, saveLtxApiKey, saveFalApiKey, saveGeminiApiKey, saveLivepeerSignerUrl, forceApiGenerations, cudaAvailable } = useAppSettings()
+  const { settings, updateSettings, saveLtxApiKey, saveFalApiKey, saveGeminiApiKey, saveLivepeerSignerUrl, saveLivepeerApiKey, forceApiGenerations, cudaAvailable } = useAppSettings()
   const onSettingsChange = (next: AppSettings) => updateSettings(next)
   const [activeTab, setActiveTab] = useState<TabId>('general')
   const ltxApiKey = useApiKeyFocus(isOpen, activeTab, setActiveTab)
@@ -124,6 +162,8 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   const [showModelLicense, setShowModelLicense] = useState(false)
   // Remote inference state
   const [livepeerSignerUrlInput, setLivepeerSignerUrlInput] = useState('')
+  const [livepeerApiKeyInput, setLivepeerApiKeyInput] = useState('')
+  const [showProviders, setShowProviders] = useState(false)
   const [providers, setProviders] = useState<Array<{
     runner_id: string; url: string;
     gpu: { name: string; vram_mb: number };
@@ -242,11 +282,11 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   }
 
   useEffect(() => {
-    if (!isOpen || !settings.remoteInferenceEnabled) return
+    if (!isOpen || !settings.hasLivepeerSignerUrl) return
     void fetchProviders()
     const interval = setInterval(() => { void fetchProviders() }, 30000)
     return () => clearInterval(interval)
-  }, [isOpen, settings.remoteInferenceEnabled, settings.hasLivepeerSignerUrl])
+  }, [isOpen, settings.hasLivepeerSignerUrl])
 
   const discoverProviders = async () => {
     setDiscovering(true)
@@ -513,6 +553,14 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                       </div>
                     )}
                   </div>
+
+                  <LivepeerToggle
+                    enabled={settings.livepeerVideoEnabled}
+                    onToggle={() => onSettingsChange({ ...settings, livepeerVideoEnabled: !settings.livepeerVideoEnabled })}
+                    disabled={!settings.hasLivepeerSignerUrl}
+                    label="Generate with Livepeer"
+                    description="Route video generation to your own Livepeer orchestrator/runner. Requires a signer URL in the API Keys tab."
+                  />
                 </div>
               )}
 
@@ -562,6 +610,14 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                       </div>
                     )}
                   </div>
+
+                  <LivepeerToggle
+                    enabled={settings.livepeerImageEnabled}
+                    onToggle={() => onSettingsChange({ ...settings, livepeerImageEnabled: !settings.livepeerImageEnabled })}
+                    disabled={!settings.hasLivepeerSignerUrl}
+                    label="Generate with Livepeer"
+                    description="Route image generation and editing to your own Livepeer orchestrator/runner. Requires a signer URL in the API Keys tab."
+                  />
                 </div>
               )}
 
@@ -728,6 +784,14 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                     </div>
                   )}
                 </div>
+
+                <LivepeerToggle
+                  enabled={settings.livepeerTextEncodingEnabled}
+                  onToggle={() => onSettingsChange({ ...settings, livepeerTextEncodingEnabled: !settings.livepeerTextEncodingEnabled })}
+                  disabled={!settings.hasLivepeerSignerUrl}
+                  label="Encode with Livepeer"
+                  description="Use the remote runner's text encoder for prompt encoding when generating through Livepeer."
+                />
               </div>
               )}
 
@@ -867,178 +931,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
 
               </div>
 
-              {/* Remote Inference Section */}
-              <div className="space-y-3 pt-4 border-t border-zinc-800">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <svg className="h-4 w-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                        <path d="M2 17l10 5 10-5" />
-                        <path d="M2 12l10 5 10-5" />
-                      </svg>
-                      <label className="text-sm font-medium text-white">
-                        Remote Inference
-                      </label>
-                    </div>
-                    <p className="text-xs text-zinc-500 leading-relaxed">
-                      Use the Livepeer network for GPU inference instead of your local machine.
-                      Requires a remote signer URL for payment and orchestrator discovery.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onSettingsChange({
-                        ...settings,
-                        remoteInferenceEnabled: !settings.remoteInferenceEnabled,
-                      })
-                    }
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      settings.remoteInferenceEnabled ? 'bg-cyan-500' : 'bg-zinc-700'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        settings.remoteInferenceEnabled ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1.5 ${
-                  settings.remoteInferenceEnabled
-                    ? 'bg-cyan-500/10 text-cyan-400'
-                    : 'bg-zinc-800 text-zinc-500'
-                }`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${
-                    settings.remoteInferenceEnabled ? 'bg-cyan-400' : 'bg-zinc-600'
-                  }`} />
-                  {settings.remoteInferenceEnabled ? 'Remote inference active' : 'Local inference'}
-                </div>
-
-                {/* Signer URL input */}
-                {settings.remoteInferenceEnabled && (
-                  <div className="mt-3 space-y-2">
-                    <label className="block text-xs text-zinc-300 font-medium">
-                      Remote Signer URL
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        value={livepeerSignerUrlInput}
-                        onChange={(e) => setLivepeerSignerUrlInput(e.target.value)}
-                        placeholder="http://signer.example.com:7936"
-                        className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      />
-                      <button
-                        onClick={() => {
-                          const trimmed = livepeerSignerUrlInput.trim()
-                          if (!trimmed) return
-                          void saveLivepeerSignerUrl(trimmed)
-                          setLivepeerSignerUrlInput('')
-                        }}
-                        disabled={!livepeerSignerUrlInput.trim()}
-                        className="px-3 py-2 bg-cyan-600 text-white text-sm rounded-lg hover:bg-cyan-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                      >
-                        Save
-                      </button>
-                    </div>
-                    <div className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1.5 ${
-                      settings.hasLivepeerSignerUrl
-                        ? 'bg-green-500/10 text-green-400'
-                        : 'bg-amber-500/10 text-amber-400'
-                    }`}>
-                      {settings.hasLivepeerSignerUrl
-                        ? <><Check className="h-3 w-3" /> Signer configured</>
-                        : <><AlertCircle className="h-3 w-3" /> Signer URL required</>}
-                    </div>
-                  </div>
-                )}
-
-                {/* Provider list */}
-                {settings.remoteInferenceEnabled && (
-                  <div className="space-y-3 pt-4 border-t border-zinc-800">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Layers className="h-4 w-4 text-emerald-400" />
-                        <h3 className="text-sm font-semibold text-white">
-                          Providers ({providers.length})
-                        </h3>
-                      </div>
-                      <button
-                        onClick={discoverProviders}
-                        disabled={discovering}
-                        className="text-xs text-cyan-400 hover:text-cyan-300 disabled:text-zinc-500"
-                      >
-                        {discovering ? 'Scanning...' : 'Refresh'}
-                      </button>
-                    </div>
-
-                    {providers.length === 0 && (
-                      <p className="text-xs text-zinc-500">
-                        {!settings.hasLivepeerSignerUrl
-                          ? 'Configure a signer URL above to start discovering providers.'
-                          : 'No providers found. Click Refresh to try again.'}
-                      </p>
-                    )}
-
-                    <div className="space-y-1.5">
-                      {providers.map(p => (
-                        <div
-                          key={p.runner_id}
-                          className={`flex items-center gap-3 rounded-lg p-3 border transition-colors ${
-                            p.selected
-                              ? 'border-cyan-500 bg-cyan-500/5'
-                              : p.excluded
-                                ? 'border-red-500/30 bg-red-500/5 opacity-60'
-                                : 'border-zinc-800 bg-zinc-800/30'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="provider"
-                            checked={p.selected}
-                            onChange={() => selectProvider(p.runner_id)}
-                            className="accent-cyan-500"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-white truncate">
-                                {p.gpu?.name || 'Unknown GPU'}
-                              </span>
-                              <span className="text-xs text-zinc-500">
-                                {p.gpu ? `${Math.round(p.gpu.vram_mb / 1024)} GB` : ''}
-                              </span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                p.status === 'online' || p.status === 'ready'
-                                  ? 'bg-green-500/10 text-green-400'
-                                  : 'bg-zinc-800 text-zinc-500'
-                              }`}>{p.status}</span>
-                            </div>
-                            <span className="text-xs text-zinc-500">
-                              {p.price_info
-                                ? `$${p.price_info.price}/${p.price_info.unit}`
-                                : 'Price TBD'}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => toggleExclude(p.runner_id)}
-                            className={`text-xs px-2 py-1 rounded transition-colors ${
-                              p.excluded
-                                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                                : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700'
-                            }`}
-                          >
-                            {p.excluded ? 'Excluded' : 'Exclude'}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
             </>
           )}
 
@@ -1230,6 +1122,191 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                     >
                       Get Gemini API key →
                     </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Livepeer Section */}
+              <div className="space-y-4 pt-4 border-t border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                  </svg>
+                  <h3 className="text-sm font-semibold text-white">Livepeer</h3>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">Remote inference</span>
+                </div>
+
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Route video, image, and text-encoding generation to your own Livepeer orchestrator/runner instead of
+                  the LTX/FAL APIs or your local machine. Use the toggles under each generation section in General to
+                  pick which ones go through Livepeer.
+                </p>
+
+                <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
+                  {/* Signer URL */}
+                  <div className="space-y-2">
+                    <label className="block text-xs text-zinc-300 font-medium">Signer / Orchestrator URL</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={livepeerSignerUrlInput}
+                        onChange={(e) => setLivepeerSignerUrlInput(e.target.value)}
+                        placeholder="https://your-signer.example.com"
+                        className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                      <button
+                        onClick={async () => {
+                          const trimmed = livepeerSignerUrlInput.trim()
+                          if (!trimmed) return
+                          await saveLivepeerSignerUrl(trimmed)
+                          setLivepeerSignerUrlInput('')
+                        }}
+                        disabled={!livepeerSignerUrlInput.trim()}
+                        className="px-3 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* API key */}
+                  <div className="space-y-2">
+                    <label className="block text-xs text-zinc-300 font-medium">API key (optional)</label>
+                    <div className="flex gap-2">
+                      <LtxApiKeyInput
+                        value={livepeerApiKeyInput}
+                        onChange={(e) => setLivepeerApiKeyInput(e.target.value)}
+                        placeholder={settings.hasLivepeerApiKey ? 'Enter new key to replace...' : 'Sent as Authorization: Bearer'}
+                        className="flex-1"
+                      />
+                      <button
+                        onClick={async () => {
+                          const trimmed = livepeerApiKeyInput.trim()
+                          if (!trimmed) return
+                          await saveLivepeerApiKey(trimmed)
+                          setLivepeerApiKeyInput('')
+                        }}
+                        disabled={!livepeerApiKeyInput.trim()}
+                        className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1.5 ${
+                    settings.hasLivepeerSignerUrl
+                      ? 'bg-green-500/10 text-green-400'
+                      : 'bg-zinc-800 text-zinc-500'
+                  }`}>
+                    {settings.hasLivepeerSignerUrl ? (
+                      <>
+                        <Check className="h-3 w-3" /> Signer configured
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-3 w-3" /> No signer URL set
+                      </>
+                    )}
+                  </div>
+
+                  {/* View available providers */}
+                  <div className="pt-1">
+                    <button
+                      onClick={() => setShowProviders(s => !s)}
+                      disabled={!settings.hasLivepeerSignerUrl}
+                      className="w-full flex items-center justify-between px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-emerald-300 hover:bg-zinc-800 disabled:text-zinc-600 disabled:bg-zinc-900 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Layers className="h-4 w-4" />
+                        View Available Providers
+                        {providers.length > 0 && (
+                          <span className="text-xs text-zinc-500">({providers.length})</span>
+                        )}
+                      </span>
+                      <span>{showProviders ? 'Hide' : 'Show'}</span>
+                    </button>
+
+                    {showProviders && (
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-zinc-500">
+                            Choose a runner for generation. Excluded runners are never selected.
+                          </p>
+                          <button
+                            onClick={discoverProviders}
+                            disabled={discovering}
+                            className="text-xs text-emerald-400 hover:text-emerald-300 disabled:text-zinc-500"
+                          >
+                            {discovering ? 'Scanning...' : 'Refresh'}
+                          </button>
+                        </div>
+
+                        {providers.length === 0 && (
+                          <p className="text-xs text-zinc-500">
+                            No providers found. Set a signer URL above and click Refresh.
+                          </p>
+                        )}
+
+                        <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                          {providers.map(p => (
+                            <div
+                              key={p.runner_id}
+                              className={`flex items-center gap-3 rounded-lg p-2.5 border transition-colors ${
+                                p.selected
+                                  ? 'border-emerald-500 bg-emerald-500/5'
+                                  : p.excluded
+                                    ? 'border-red-500/30 bg-red-500/5 opacity-60'
+                                    : 'border-zinc-800 bg-zinc-800/30'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="provider"
+                                checked={p.selected}
+                                onChange={() => selectProvider(p.runner_id)}
+                                className="accent-emerald-500"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-white truncate">
+                                    {p.gpu?.name || 'Unknown GPU'}
+                                  </span>
+                                  <span className="text-xs text-zinc-500">
+                                    {p.gpu ? `${Math.round(p.gpu.vram_mb / 1024)} GB` : ''}
+                                  </span>
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                    p.status === 'online' || p.status === 'ready'
+                                      ? 'bg-green-500/10 text-green-400'
+                                      : 'bg-zinc-800 text-zinc-500'
+                                  }`}>{p.status}</span>
+                                </div>
+                                <span className="text-xs text-zinc-500 font-mono truncate block">
+                                  {p.url}
+                                </span>
+                                <span className="text-xs text-zinc-500">
+                                  {p.price_info
+                                    ? `$${p.price_info.price}/${p.price_info.unit}`
+                                    : 'Price TBD'}
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => toggleExclude(p.runner_id)}
+                                className={`text-xs px-2 py-1 rounded transition-colors ${
+                                  p.excluded
+                                    ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700'
+                                }`}
+                              >
+                                {p.excluded ? 'Excluded' : 'Exclude'}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

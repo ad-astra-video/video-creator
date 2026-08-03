@@ -70,6 +70,9 @@ class AppSettings(SettingsBaseModel):
     active_ltx_model_id: LTXLocalModelId | None = None
     # Remote inference via Livepeer
     remote_inference_enabled: bool = False
+    livepeer_video_enabled: bool = True
+    livepeer_image_enabled: bool = True
+    livepeer_text_encoding_enabled: bool = True
     livepeer_signer_url: str = ""
     livepeer_api_key: str = ""
     livepeer_selected_runner_id: str = ""
@@ -149,6 +152,9 @@ class SettingsResponse(SettingsBaseModel):
     active_ltx_model_id: LTXLocalModelId | None = None
     # Remote inference
     remote_inference_enabled: bool = False
+    livepeer_video_enabled: bool = True
+    livepeer_image_enabled: bool = True
+    livepeer_text_encoding_enabled: bool = True
     has_livepeer_signer_url: bool = False
     has_livepeer_api_key: bool = False
     livepeer_selected_runner_id: str = ""

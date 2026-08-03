@@ -24,6 +24,9 @@ export interface AppSettings {
   modelsDir: string
   // Remote inference via Livepeer
   remoteInferenceEnabled: boolean
+  livepeerVideoEnabled: boolean
+  livepeerImageEnabled: boolean
+  livepeerTextEncodingEnabled: boolean
   hasLivepeerSignerUrl: boolean
   hasLivepeerApiKey: boolean
   livepeerSelectedRunnerId: string
@@ -47,6 +50,9 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   lockedSeed: 42,
   modelsDir: '',
   remoteInferenceEnabled: false,
+  livepeerVideoEnabled: true,
+  livepeerImageEnabled: true,
+  livepeerTextEncodingEnabled: true,
   hasLivepeerSignerUrl: false,
   hasLivepeerApiKey: false,
   livepeerSelectedRunnerId: '',
@@ -104,6 +110,9 @@ function normalizeAppSettings(data: Partial<AppSettings>): AppSettings {
     lockedSeed: data.lockedSeed ?? DEFAULT_APP_SETTINGS.lockedSeed,
     modelsDir: data.modelsDir ?? DEFAULT_APP_SETTINGS.modelsDir,
     remoteInferenceEnabled: data.remoteInferenceEnabled ?? DEFAULT_APP_SETTINGS.remoteInferenceEnabled,
+    livepeerVideoEnabled: data.livepeerVideoEnabled ?? DEFAULT_APP_SETTINGS.livepeerVideoEnabled,
+    livepeerImageEnabled: data.livepeerImageEnabled ?? DEFAULT_APP_SETTINGS.livepeerImageEnabled,
+    livepeerTextEncodingEnabled: data.livepeerTextEncodingEnabled ?? DEFAULT_APP_SETTINGS.livepeerTextEncodingEnabled,
     hasLivepeerSignerUrl: data.hasLivepeerSignerUrl ?? DEFAULT_APP_SETTINGS.hasLivepeerSignerUrl,
     hasLivepeerApiKey: data.hasLivepeerApiKey ?? DEFAULT_APP_SETTINGS.hasLivepeerApiKey,
     livepeerSelectedRunnerId: data.livepeerSelectedRunnerId ?? DEFAULT_APP_SETTINGS.livepeerSelectedRunnerId,
