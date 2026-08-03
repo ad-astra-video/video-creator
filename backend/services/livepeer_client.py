@@ -44,9 +44,10 @@ class RunnerInfo:
 class LivepeerClient:
     """Discovers and calls LTX-Desktop runners through Livepeer orchestrators."""
 
-    def __init__(self, signer_url: str, results_dir: Path) -> None:
+    def __init__(self, signer_url: str, results_dir: Path, api_key: str = "") -> None:
         self.signer_url = signer_url
         self.results_dir = results_dir
+        self.api_key = api_key
         self.results_dir.mkdir(parents=True, exist_ok=True)
         self._runners: dict[str, RunnerInfo] = {}
         self._discovery_task: asyncio.Task | None = None
@@ -62,6 +63,12 @@ class LivepeerClient:
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
         return ctx
+
+    def _auth_headers(self) -> dict[str, str]:
+        """Optional bearer token attached to outbound orchestrator/runner calls."""
+        if self.api_key.strip():
+            return {"Authorization": f"Bearer {self.api_key.strip()}"}
+        return {}
 
     async def discover(self) -> list[RunnerInfo]:
         """Query orchestrator for available runners.
@@ -80,7 +87,9 @@ class LivepeerClient:
                 orch_urls: list[str] = []
                 orch_url = f"{signer_base}/orchestrators"
                 try:
-                    async with session.get(orch_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    async with session.get(
+                        orch_url, timeout=aiohttp.ClientTimeout(total=10), headers=self._auth_headers()
+                    ) as resp:
                         if resp.status == 200:
                             orch_data = await resp.json()
                             orch_urls = orch_data if isinstance(orch_data, list) else []
@@ -98,6 +107,7 @@ class LivepeerClient:
                             discovery_url,
                             params={"app": "ltx-desktop"},
                             timeout=aiohttp.ClientTimeout(total=10),
+                            headers=self._auth_headers(),
                         ) as resp:
                             if resp.status != 200:
                                 continue
@@ -182,6 +192,7 @@ class LivepeerClient:
                 runner_url,
                 json=payload,
                 timeout=aiohttp.ClientTimeout(total=timeout_s),
+                headers=self._auth_headers(),
             ) as resp:
                 if resp.status != 200:
                     text = await resp.text()

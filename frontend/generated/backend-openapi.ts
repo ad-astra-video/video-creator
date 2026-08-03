@@ -604,6 +604,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Providers
+         * @description List discovered providers with selection/exclusion state.
+         */
+        get: operations["get_providers_api_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/providers/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discover Providers
+         * @description Trigger a fresh discovery sweep.
+         */
+        post: operations["discover_providers_api_providers_discover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/providers/exclude": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exclude Provider
+         * @description Toggle exclusion for a provider.
+         */
+        post: operations["exclude_provider_api_providers_exclude_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/providers/select": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Select Provider
+         * @description Select a provider for inference.
+         */
+        post: operations["select_provider_api_providers_select_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/retake": {
         parameters: {
             query?: never;
@@ -728,6 +808,14 @@ export interface components {
             falApiKey?: string | null;
             /** Geminiapikey */
             geminiApiKey?: string | null;
+            /** Livepeerapikey */
+            livepeerApiKey?: string | null;
+            /** Livepeerexcludedrunnerids */
+            livepeerExcludedRunnerIds?: string[] | null;
+            /** Livepeerselectedrunnerid */
+            livepeerSelectedRunnerId?: string | null;
+            /** Livepeersignerurl */
+            livepeerSignerUrl?: string | null;
             /** Lockedseed */
             lockedSeed?: number | null;
             /** Ltxapikey */
@@ -742,6 +830,8 @@ export interface components {
             promptEnhancerEnabledT2V?: boolean | null;
             /** Promptenhancerproviderpreference */
             promptEnhancerProviderPreference?: ("local" | "api") | null;
+            /** Remoteinferenceenabled */
+            remoteInferenceEnabled?: boolean | null;
             /** Seedlocked */
             seedLocked?: boolean | null;
             /** Uselocaltextencoder */
@@ -937,6 +1027,11 @@ export interface components {
         EnhancePromptResponse: {
             /** Enhancedprompt */
             enhancedPrompt: string;
+        };
+        /** ExcludeProviderRequest */
+        ExcludeProviderRequest: {
+            /** Runner Id */
+            runner_id: string;
         };
         /** ExtendRequest */
         ExtendRequest: {
@@ -1932,6 +2027,11 @@ export interface components {
             /** Force Api Generations */
             force_api_generations: boolean;
         };
+        /** SelectProviderRequest */
+        SelectProviderRequest: {
+            /** Runner Id */
+            runner_id: string;
+        };
         /** SetActiveLtxModelRequest */
         SetActiveLtxModelRequest: {
             /**
@@ -1960,10 +2060,27 @@ export interface components {
              */
             hasGeminiApiKey: boolean;
             /**
+             * Haslivepeerapikey
+             * @default false
+             */
+            hasLivepeerApiKey: boolean;
+            /**
+             * Haslivepeersignerurl
+             * @default false
+             */
+            hasLivepeerSignerUrl: boolean;
+            /**
              * Hasltxapikey
              * @default false
              */
             hasLtxApiKey: boolean;
+            /** Livepeerexcludedrunnerids */
+            livepeerExcludedRunnerIds?: string[];
+            /**
+             * Livepeerselectedrunnerid
+             * @default
+             */
+            livepeerSelectedRunnerId: string;
             /**
              * Lockedseed
              * @default 42
@@ -1991,6 +2108,11 @@ export interface components {
             promptEnhancerEnabledT2V: boolean;
             /** Promptenhancerproviderpreference */
             promptEnhancerProviderPreference?: ("local" | "api") | null;
+            /**
+             * Remoteinferenceenabled
+             * @default false
+             */
+            remoteInferenceEnabled: boolean;
             /**
              * Seedlocked
              * @default false
@@ -3435,6 +3557,174 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TextEncoderRecommendationResponse"];
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    get_providers_api_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    discover_providers_api_providers_discover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    exclude_provider_api_providers_exclude_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExcludeProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    select_provider_api_providers_select_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelectProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Client Error */

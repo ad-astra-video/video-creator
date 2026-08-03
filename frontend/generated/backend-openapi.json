@@ -92,6 +92,53 @@
             ],
             "title": "Geminiapikey"
           },
+          "livepeerApiKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Livepeerapikey"
+          },
+          "livepeerExcludedRunnerIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Livepeerexcludedrunnerids"
+          },
+          "livepeerSelectedRunnerId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Livepeerselectedrunnerid"
+          },
+          "livepeerSignerUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Livepeersignerurl"
+          },
           "lockedSeed": {
             "anyOf": [
               {
@@ -172,6 +219,17 @@
               }
             ],
             "title": "Promptenhancerproviderpreference"
+          },
+          "remoteInferenceEnabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remoteinferenceenabled"
           },
           "seedLocked": {
             "anyOf": [
@@ -739,6 +797,19 @@
           "enhancedPrompt"
         ],
         "title": "EnhancePromptResponse",
+        "type": "object"
+      },
+      "ExcludeProviderRequest": {
+        "properties": {
+          "runner_id": {
+            "title": "Runner Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "runner_id"
+        ],
+        "title": "ExcludeProviderRequest",
         "type": "object"
       },
       "ExtendRequest": {
@@ -3414,6 +3485,19 @@
         "title": "RuntimePolicyResponse",
         "type": "object"
       },
+      "SelectProviderRequest": {
+        "properties": {
+          "runner_id": {
+            "title": "Runner Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "runner_id"
+        ],
+        "title": "SelectProviderRequest",
+        "type": "object"
+      },
       "SetActiveLtxModelRequest": {
         "properties": {
           "model_id": {
@@ -3463,10 +3547,32 @@
             "title": "Hasgeminiapikey",
             "type": "boolean"
           },
+          "hasLivepeerApiKey": {
+            "default": false,
+            "title": "Haslivepeerapikey",
+            "type": "boolean"
+          },
+          "hasLivepeerSignerUrl": {
+            "default": false,
+            "title": "Haslivepeersignerurl",
+            "type": "boolean"
+          },
           "hasLtxApiKey": {
             "default": false,
             "title": "Hasltxapikey",
             "type": "boolean"
+          },
+          "livepeerExcludedRunnerIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Livepeerexcludedrunnerids",
+            "type": "array"
+          },
+          "livepeerSelectedRunnerId": {
+            "default": "",
+            "title": "Livepeerselectedrunnerid",
+            "type": "string"
           },
           "lockedSeed": {
             "default": 42,
@@ -3507,6 +3613,11 @@
               }
             ],
             "title": "Promptenhancerproviderpreference"
+          },
+          "remoteInferenceEnabled": {
+            "default": false,
+            "title": "Remoteinferenceenabled",
+            "type": "boolean"
           },
           "seedLocked": {
             "default": false,
@@ -5390,6 +5501,202 @@
         "summary": "Route Text Encoder Recommendation",
         "tags": [
           "models"
+        ]
+      }
+    },
+    "/api/providers": {
+      "get": {
+        "description": "List discovered providers with selection/exclusion state.",
+        "operationId": "get_providers_api_providers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Providers Api Providers Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Get Providers",
+        "tags": [
+          "providers"
+        ]
+      }
+    },
+    "/api/providers/discover": {
+      "post": {
+        "description": "Trigger a fresh discovery sweep.",
+        "operationId": "discover_providers_api_providers_discover_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Discover Providers Api Providers Discover Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Discover Providers",
+        "tags": [
+          "providers"
+        ]
+      }
+    },
+    "/api/providers/exclude": {
+      "post": {
+        "description": "Toggle exclusion for a provider.",
+        "operationId": "exclude_provider_api_providers_exclude_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExcludeProviderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Exclude Provider Api Providers Exclude Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Exclude Provider",
+        "tags": [
+          "providers"
+        ]
+      }
+    },
+    "/api/providers/select": {
+      "post": {
+        "description": "Select a provider for inference.",
+        "operationId": "select_provider_api_providers_select_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectProviderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Select Provider Api Providers Select Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Select Provider",
+        "tags": [
+          "providers"
         ]
       }
     },

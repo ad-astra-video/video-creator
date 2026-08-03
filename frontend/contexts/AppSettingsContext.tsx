@@ -25,6 +25,7 @@ export interface AppSettings {
   // Remote inference via Livepeer
   remoteInferenceEnabled: boolean
   hasLivepeerSignerUrl: boolean
+  hasLivepeerApiKey: boolean
   livepeerSelectedRunnerId: string
   livepeerExcludedRunnerIds: string[]
 }
@@ -47,6 +48,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   modelsDir: '',
   remoteInferenceEnabled: false,
   hasLivepeerSignerUrl: false,
+  hasLivepeerApiKey: false,
   livepeerSelectedRunnerId: '',
   livepeerExcludedRunnerIds: [],
 }
@@ -63,6 +65,7 @@ interface AppSettingsContextValue {
   saveFalApiKey: (value: string) => Promise<void>
   saveGeminiApiKey: (value: string) => Promise<void>
   saveLivepeerSignerUrl: (value: string) => Promise<void>
+  saveLivepeerApiKey: (value: string) => Promise<void>
   forceApiGenerations: boolean
   shouldVideoGenerateWithLtxApi: boolean
   shouldImageGenerateWithFalApi: boolean
@@ -102,6 +105,7 @@ function normalizeAppSettings(data: Partial<AppSettings>): AppSettings {
     modelsDir: data.modelsDir ?? DEFAULT_APP_SETTINGS.modelsDir,
     remoteInferenceEnabled: data.remoteInferenceEnabled ?? DEFAULT_APP_SETTINGS.remoteInferenceEnabled,
     hasLivepeerSignerUrl: data.hasLivepeerSignerUrl ?? DEFAULT_APP_SETTINGS.hasLivepeerSignerUrl,
+    hasLivepeerApiKey: data.hasLivepeerApiKey ?? DEFAULT_APP_SETTINGS.hasLivepeerApiKey,
     livepeerSelectedRunnerId: data.livepeerSelectedRunnerId ?? DEFAULT_APP_SETTINGS.livepeerSelectedRunnerId,
     livepeerExcludedRunnerIds: data.livepeerExcludedRunnerIds ?? DEFAULT_APP_SETTINGS.livepeerExcludedRunnerIds,
   }
@@ -245,7 +249,15 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isLoaded || backendProcessStatus !== 'alive') return
     const syncTimer = setTimeout(async () => {
-      const { hasLtxApiKey: _, hasFalApiKey: __, hasGeminiApiKey: ___, modelsDir: ____, hasLivepeerSignerUrl: _____, ...syncPayload } = settings
+      const {
+        hasLtxApiKey: _ltxKey,
+        hasFalApiKey: _falKey,
+        hasGeminiApiKey: _geminiKey,
+        hasLivepeerSignerUrl: _lpSigner,
+        hasLivepeerApiKey: _lpKey,
+        modelsDir: _modelsDir,
+        ...syncPayload
+      } = settings
       const result = await ApiClient.updateSettings(syncPayload)
       if (!result.ok) {
         // Best-effort settings sync.
@@ -294,6 +306,14 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
     await refreshSettings()
   }, [refreshSettings])
 
+  const saveLivepeerApiKey = useCallback(async (value: string) => {
+    const result = await ApiClient.updateSettings({ livepeerApiKey: value })
+    if (!result.ok) {
+      throw new Error(result.error.message)
+    }
+    await refreshSettings()
+  }, [refreshSettings])
+
   const shouldVideoGenerateWithLtxApi =
     forceApiGenerations || (settings.userPrefersLtxApiVideoGenerations && settings.hasLtxApiKey)
   const shouldImageGenerateWithFalApi =
@@ -310,12 +330,13 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
       saveFalApiKey,
       saveGeminiApiKey,
       saveLivepeerSignerUrl,
+      saveLivepeerApiKey,
       forceApiGenerations,
       shouldVideoGenerateWithLtxApi,
       shouldImageGenerateWithFalApi,
       cudaAvailable,
     }),
-    [cudaAvailable, forceApiGenerations, isLoaded, refreshSettings, runtimePolicyLoaded, saveFalApiKey, saveGeminiApiKey, saveLtxApiKey, saveLivepeerSignerUrl, settings, shouldVideoGenerateWithLtxApi, shouldImageGenerateWithFalApi, updateSettings],
+    [cudaAvailable, forceApiGenerations, isLoaded, refreshSettings, runtimePolicyLoaded, saveFalApiKey, saveGeminiApiKey, saveLtxApiKey, saveLivepeerSignerUrl, saveLivepeerApiKey, settings, shouldVideoGenerateWithLtxApi, shouldImageGenerateWithFalApi, updateSettings],
   )
 
   return <AppSettingsContext.Provider value={contextValue}>{children}</AppSettingsContext.Provider>

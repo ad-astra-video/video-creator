@@ -179,6 +179,7 @@ def create_app(
         client = LivepeerClient(
             signer_url=settings.livepeer_signer_url,
             results_dir=results_dir,
+            api_key=settings.livepeer_api_key,
         )
         # Store on handler state so generation handlers can access it
         handler.state._livepeer_client = client  # type: ignore[attr-defined]

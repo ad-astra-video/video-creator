@@ -30,7 +30,7 @@ type LtxUpgradeRecommendation = Extract<LtxRecommendation, { status: 'upgrade' }
 function AppContent() {
   const { currentView } = useView()
   const { connected, processStatus, isLoading: backendLoading } = useBackend()
-  const { settings, saveLtxApiKey, saveFalApiKey, forceApiGenerations, isLoaded, runtimePolicyLoaded } = useAppSettings()
+  const { settings, saveLtxApiKey, saveFalApiKey, saveLivepeerSignerUrl, saveLivepeerApiKey, forceApiGenerations, isLoaded, runtimePolicyLoaded } = useAppSettings()
   // Always mounted here (unlike GenSpace, which unmounts on every view/tab switch) so a
   // generation that finishes while its project isn't open still gets persisted.
   useGenerationRecoveryWatcher()
@@ -51,7 +51,7 @@ function AppContent() {
   const setupCompletionInFlightRef = useRef<Promise<void> | null>(null)
 
   type ApiGatewayRequest = {
-    requiredKeys: Array<'ltx' | 'fal'>
+    requiredKeys: Array<'ltx' | 'fal' | 'livepeer'>
     title: string
     description: string
     blocking?: boolean
@@ -427,6 +427,24 @@ function AppContent() {
         onGetKey: () => window.electronAPI.openFalApiKeyPage(),
         getKeyLabel: 'Get FAL API key',
       },
+      {
+        keyType: 'livepeer',
+        title: 'Livepeer',
+        description: 'Route video and image generation to your own Livepeer orchestrator/runner. When a signer URL is set here, all requests go through Livepeer instead of the LTX/FAL APIs.',
+        required: apiGatewayRequest.requiredKeys.includes('livepeer'),
+        isConfigured: settings.hasLivepeerSignerUrl,
+        primaryLabel: 'Livepeer signer URL',
+        primaryPlaceholder: 'https://your-signer.example.com',
+        inputLabel: 'Livepeer API key',
+        placeholder: 'API key (optional; sent as Authorization: Bearer)',
+        onSave: saveLivepeerSignerUrl,
+        onSaveLivepeer: async (url, key) => {
+          await saveLivepeerSignerUrl(url)
+          if (key) {
+            await saveLivepeerApiKey(key)
+          }
+        },
+      },
     ]
 
     return sections.filter((section) => {
@@ -440,8 +458,11 @@ function AppContent() {
     saveApiKeyForFirstRun,
     saveFalApiKey,
     saveLtxApiKey,
+    saveLivepeerSignerUrl,
+    saveLivepeerApiKey,
     settings.hasFalApiKey,
     settings.hasLtxApiKey,
+    settings.hasLivepeerSignerUrl,
   ])
 
   if (pythonReady === null) {

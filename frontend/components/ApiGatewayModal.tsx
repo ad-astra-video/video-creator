@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { KeyRound, X, Zap } from 'lucide-react'
+import { KeyRound, Link2, X, Zap } from 'lucide-react'
 import { ApiKeyHelperRow, LtxApiKeyInput } from './LtxApiKeyInput'
 
-export type ApiKeyType = 'ltx' | 'fal'
+export type ApiKeyType = 'ltx' | 'fal' | 'livepeer'
 
 export interface ApiGatewaySection {
   keyType: ApiKeyType
@@ -13,6 +13,10 @@ export interface ApiGatewaySection {
   inputLabel: string
   placeholder?: string
   onSave: (apiKey: string) => Promise<void> | void
+  // Livepeer-specific second field (API key) rendered alongside the URL/primary field.
+  primaryLabel?: string
+  primaryPlaceholder?: string
+  onSaveLivepeer?: (signerUrl: string, apiKey: string) => Promise<void> | void
   onGetKey?: () => void
   getKeyLabel?: string
 }
@@ -37,6 +41,11 @@ const KEY_TYPE_META: Record<ApiKeyType, { icon: typeof Zap; iconClass: string; c
     iconClass: 'text-cyan-400',
     chipClass: 'bg-zinc-800 text-zinc-400',
   },
+  livepeer: {
+    icon: Link2,
+    iconClass: 'text-emerald-400',
+    chipClass: 'bg-emerald-500/10 text-emerald-300',
+  },
 }
 
 export function ApiGatewayModal({
@@ -47,19 +56,21 @@ export function ApiGatewayModal({
   sections,
   blocking = false,
 }: ApiGatewayModalProps) {
-  const [values, setValues] = useState<Record<ApiKeyType, string>>({ ltx: '', fal: '' })
-  const [isSaving, setIsSaving] = useState<Record<ApiKeyType, boolean>>({ ltx: false, fal: false })
-  const [errors, setErrors] = useState<Record<ApiKeyType, string | null>>({ ltx: null, fal: null })
+  const [values, setValues] = useState<Record<ApiKeyType, string>>({ ltx: '', fal: '', livepeer: '' })
+  const [livepeerKey, setLivepeerKey] = useState('')
+  const [isSaving, setIsSaving] = useState<Record<ApiKeyType, boolean>>({ ltx: false, fal: false, livepeer: false })
+  const [errors, setErrors] = useState<Record<ApiKeyType, string | null>>({ ltx: null, fal: null, livepeer: null })
 
   useEffect(() => {
     if (!isOpen) return
-    setValues({ ltx: '', fal: '' })
-    setIsSaving({ ltx: false, fal: false })
-    setErrors({ ltx: null, fal: null })
+    setValues({ ltx: '', fal: '', livepeer: '' })
+    setLivepeerKey('')
+    setIsSaving({ ltx: false, fal: false, livepeer: false })
+    setErrors({ ltx: null, fal: null, livepeer: null })
   }, [isOpen])
 
   const allRequiredConfigured = useMemo(() => {
-    const requiredSections = sections.filter((section) => section.required)
+    const requiredSections = sections.filter((section) => section.required && section.keyType !== 'livepeer')
     if (requiredSections.length === 0) return true
     return requiredSections.every((section) => section.isConfigured)
   }, [sections])
@@ -85,6 +96,32 @@ export function ApiGatewayModal({
 
   const handleSave = async (section: ApiGatewaySection) => {
     const keyType = section.keyType
+
+    if (keyType === 'livepeer' && section.onSaveLivepeer) {
+      const url = (values.livepeer ?? '').trim()
+      const key = livepeerKey.trim()
+      if (!url) {
+        setErrors((prev) => ({ ...prev, livepeer: `Please enter ${section.primaryLabel ?? 'a Livepeer signer URL'}.` }))
+        return
+      }
+      setIsSaving((prev) => ({ ...prev, livepeer: true }))
+      setErrors((prev) => ({ ...prev, livepeer: null }))
+      try {
+        await section.onSaveLivepeer(url, key)
+        setValues((prev) => ({ ...prev, livepeer: '' }))
+        setLivepeerKey('')
+      } catch (err) {
+        if (err instanceof Error && err.message.trim()) {
+          setErrors((prev) => ({ ...prev, livepeer: err.message }))
+        } else {
+          setErrors((prev) => ({ ...prev, livepeer: 'Failed to save Livepeer settings.' }))
+        }
+      } finally {
+        setIsSaving((prev) => ({ ...prev, livepeer: false }))
+      }
+      return
+    }
+
     const trimmedKey = (values[keyType] ?? '').trim()
     if (!trimmedKey) {
       setErrors((prev) => ({ ...prev, [keyType]: `Please enter a valid ${section.inputLabel}.` }))
@@ -107,7 +144,10 @@ export function ApiGatewayModal({
     }
   }
 
-  const requiredMissing = useMemo(() => sections.some((section) => section.required && !section.isConfigured), [sections])
+  const requiredMissing = useMemo(
+    () => sections.some((section) => section.required && section.keyType !== 'livepeer' && !section.isConfigured),
+    [sections],
+  )
 
   if (!isOpen) return null
 
@@ -137,13 +177,17 @@ export function ApiGatewayModal({
 
           <div className="space-y-4">
             {sections.map((section) => {
+              const isLivepeer = section.keyType === 'livepeer'
               const meta = KEY_TYPE_META[section.keyType]
               const Icon = meta.icon
               const configured = section.isConfigured
               const saving = isSaving[section.keyType]
               const value = values[section.keyType] ?? ''
               const error = errors[section.keyType]
-              const canSubmit = value.trim().length > 0 && !saving
+              const canSubmit =
+                section.keyType === 'livepeer'
+                  ? value.trim().length > 0 && !saving
+                  : value.trim().length > 0 && !saving
 
               return (
                 <div key={section.keyType} className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
@@ -165,26 +209,49 @@ export function ApiGatewayModal({
 
                   {!configured && (
                     <div className="space-y-2">
-                      <label className="block text-xs text-zinc-300">{section.inputLabel}</label>
-                      <div className="flex gap-2">
-                        <LtxApiKeyInput
-                          value={value}
-                          onChange={(event) => setValues((prev) => ({ ...prev, [section.keyType]: event.target.value }))}
-                          placeholder={section.placeholder ?? 'Paste your API key'}
-                          className="flex-1"
-                        />
+                      {isLivepeer ? (
+                        <>
+                          <label className="block text-xs text-zinc-300">{section.primaryLabel ?? 'Livepeer signer URL'}</label>
+                          <LtxApiKeyInput
+                            value={values.livepeer ?? ''}
+                            onChange={(event) => setValues((prev) => ({ ...prev, livepeer: event.target.value }))}
+                            placeholder={section.primaryPlaceholder ?? 'https://your-signer.example.com'}
+                            className="w-full"
+                          />
+                          <label className="block text-xs text-zinc-300">{section.inputLabel}</label>
+                          <LtxApiKeyInput
+                            value={livepeerKey}
+                            onChange={(event) => setLivepeerKey(event.target.value)}
+                            placeholder={section.placeholder ?? 'Livepeer API key (optional)'}
+                            className="w-full"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <label className="block text-xs text-zinc-300">{section.inputLabel}</label>
+                          <div className="flex gap-2">
+                            <LtxApiKeyInput
+                              value={value}
+                              onChange={(event) => setValues((prev) => ({ ...prev, [section.keyType]: event.target.value }))}
+                              placeholder={section.placeholder ?? 'Paste your API key'}
+                              className="flex-1"
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      <div className="flex gap-2 justify-end">
                         <button
                           onClick={() => handleSave(section)}
                           disabled={!canSubmit}
                           className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                         >
-                          {saving ? 'Saving...' : 'Save Key'}
+                          {saving ? 'Saving...' : 'Save'}
                         </button>
                       </div>
-                      <ApiKeyHelperRow
-                        label={section.getKeyLabel ?? 'Get API key'}
-                        onOpenKey={section.onGetKey}
-                      />
+                      {section.onGetKey && (
+                        <ApiKeyHelperRow label={section.getKeyLabel ?? 'Get API key'} onOpenKey={section.onGetKey} />
+                      )}
                     </div>
                   )}
 
