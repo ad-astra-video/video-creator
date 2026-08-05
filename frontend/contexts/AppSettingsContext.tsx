@@ -33,6 +33,12 @@ export interface AppSettings {
   hasLivepeerApiKey: boolean
   livepeerSelectedRunnerId: string
   livepeerExcludedRunnerIds: string[]
+  // Remote "platform" credits API (per-install identity + credit top-up)
+  platformBaseUrl: string
+  hasPlatformBaseUrl: boolean
+  platformUserId: string
+  hasPlatformApiKey: boolean
+  platformRecoveryEmail: string
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -61,6 +67,11 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   hasLivepeerApiKey: false,
   livepeerSelectedRunnerId: '',
   livepeerExcludedRunnerIds: [],
+  platformBaseUrl: '',
+  hasPlatformBaseUrl: false,
+  platformUserId: '',
+  hasPlatformApiKey: false,
+  platformRecoveryEmail: '',
 }
 
 type BackendProcessStatus = 'alive' | 'restarting' | 'dead'
@@ -123,6 +134,11 @@ function normalizeAppSettings(data: Partial<AppSettings>): AppSettings {
     hasLivepeerApiKey: data.hasLivepeerApiKey ?? DEFAULT_APP_SETTINGS.hasLivepeerApiKey,
     livepeerSelectedRunnerId: data.livepeerSelectedRunnerId ?? DEFAULT_APP_SETTINGS.livepeerSelectedRunnerId,
     livepeerExcludedRunnerIds: data.livepeerExcludedRunnerIds ?? DEFAULT_APP_SETTINGS.livepeerExcludedRunnerIds,
+    platformBaseUrl: data.platformBaseUrl ?? DEFAULT_APP_SETTINGS.platformBaseUrl,
+    hasPlatformBaseUrl: data.hasPlatformBaseUrl ?? DEFAULT_APP_SETTINGS.hasPlatformBaseUrl,
+    platformUserId: data.platformUserId ?? DEFAULT_APP_SETTINGS.platformUserId,
+    hasPlatformApiKey: data.hasPlatformApiKey ?? DEFAULT_APP_SETTINGS.hasPlatformApiKey,
+    platformRecoveryEmail: data.platformRecoveryEmail ?? DEFAULT_APP_SETTINGS.platformRecoveryEmail,
   }
 }
 

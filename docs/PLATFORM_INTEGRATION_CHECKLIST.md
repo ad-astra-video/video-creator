@@ -17,7 +17,7 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ## 1. Module A — Backend foundation: platform client + settings + provisioning
 **Goal:** desktop can spend + recover credits and gate remote generation.
-**Status:** implementation dispatched (deleg_1f074145); will fix pre-existing livepeer_client.py pyright/logging failures in the same pass.
+**Commit:** `bf2c2d9`. All touched files pyright-clean; 587/588 tests pass (only `test_pyright` red on 16 pre-existing out-of-scope errors in ic_lora_handler/providers/app_factory).
 - [x] Add platform settings fields: `platform_base_url`, `platform_user_id`, `platform_api_key`
       (secret), `platform_recovery_email` — in `backend/state/app_settings.py`.
 - [x] Mask `platform_api_key` in `SettingsResponse` (`has_platform_api_key`) via existing pattern.
@@ -31,18 +31,18 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
       untouched by Module A; `livepeer_client.py` gets fixed in Module B). New tests green.
 - [x] **Clean commit — Module A** (`8ec6f40`).
 
-## 2. Module B — Backend credits: balance/checkout + recovery + dispatch gate (IN PROGRESS)
-- [ ] Credits domain: handler + routes for `GET /balance`, `POST /checkout` (tier -> Stripe URL).
-- [ ] Recovery endpoints: `POST /link-email`, `POST /recover/confirm` (lost-key rotation).
-- [ ] Balance gate in `services/livepeer_client.py` dispatch (block remote job when `hasAccess` false;
-      surface "insufficient credits").
-- [ ] Pydantic request/response models in `backend/api_types.py`.
-- [ ] Integration tests.
-- [ ] Verify: `pnpm typecheck:py` + `pnpm backend:test` green.
-- [ ] **Clean commit — Module B.**
+## 2. Module B — Backend credits: balance/checkout + recovery + dispatch gate (DONE)
+- [x] Credits domain: handler + routes for `GET /balance`, `POST /checkout` (tier -> Stripe URL).
+- [x] Recovery endpoints: `POST /link-email`, `POST /recover/request`, `POST /recover/confirm` (key rotation).
+- [x] Balance gate on remote Livepeer dispatch (handler-level `ensure_generation_allowed`, wired in `app_handler.py`;
+      fail-open, no-op when unconfigured).
+- [x] Pydantic request/response models in `backend/api_types.py` (camelCase aliases).
+- [x] Integration tests (`tests/test_platform_credits.py`).
+- [x] Verify: all Module B files pyright-clean; 587/588 pass; `test_logging_policy` now green.
+- [x] **Clean commit — Module B** (`bf2c2d9`).
 
-## 3. Module C — Frontend: Credits panel + settings
-- [ ] Platform base URL field in settings UI (frontend).
+## 3. Module C — Frontend: Credits panel + settings (IN PROGRESS)
+- [~] Platform base URL field in settings UI (frontend).
 - [ ] Credits panel: show live balance, Refresh, Deposit button (opens Stripe checkout URL).
 - [ ] Wire all calls through `backendFetch` (never raw `fetch`).
 - [ ] Handle insufficient-credits state in the generation UI.

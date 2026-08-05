@@ -319,6 +319,100 @@ export function makeEndpointClient<
   }
 }
 
+export interface PlatformStatus {
+  userId: string
+  configured: boolean
+  hasApiKey: boolean
+  baseUrl: string
+}
+
+export interface PlatformBalance {
+  hasAccess: boolean
+  balanceUsdMicros: number
+  remainingUsdMicros: number
+  consumedUsdMicros: number
+  lifetimeGrantedUsdMicros: number
+  configured: boolean
+}
+
+export interface PlatformCheckoutResponse {
+  url: string
+  configured: boolean
+}
+
+export interface PlatformLinkEmailResponse {
+  configured: boolean
+}
+
+export interface PlatformRecoverResponse {
+  status: string
+}
+
+export interface PlatformRecoverConfirmResponse {
+  hasApiKey: boolean
+  configured: boolean
+}
+
+export type PlatformRequestResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; status: number; error: HTTPErrorResponse }
+
+/** Thin backendFetch wrapper for the platform-credits endpoints (balance, top-up,
+ *  recovery). These are desktop-backend routes, never direct platform calls. */
+async function platformRequest<T>(
+  path: string,
+  method: HttpMethod,
+  body?: unknown,
+): Promise<PlatformRequestResult<T>> {
+  const init: RequestInit = { method: method.toUpperCase() }
+  if (body !== undefined) {
+    init.headers = { 'Content-Type': 'application/json' }
+    init.body = JSON.stringify(body)
+  }
+
+  let response: Response
+  try {
+    response = await backendFetch(path, init)
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: error instanceof Error ? error.message : 'Request failed before the server responded.',
+      },
+    }
+  }
+
+  if (response.ok) {
+    let data: T
+    try {
+      data = (await response.json()) as T
+    } catch {
+      return {
+        ok: false,
+        status: response.status,
+        error: { code: 'INVALID_SUCCESS_RESPONSE', message: `${path} returned an invalid response.` },
+      }
+    }
+    return { ok: true, data }
+  }
+
+  let error: HTTPErrorResponse = {
+    code: `HTTP_${response.status}`,
+    message: response.statusText || 'Request failed',
+  }
+  try {
+    const parsed = (await response.json()) as Partial<HTTPErrorResponse>
+    if (parsed && typeof parsed.message === 'string') {
+      error = { code: parsed.code || `HTTP_${response.status}`, message: parsed.message }
+    }
+  } catch {
+    // Non-JSON error body; keep the synthetic error above.
+  }
+  return { ok: false, status: response.status, error }
+}
+
 export class ApiClient {
   static getHealth = makeEndpointClient('/health', 'get')
 
@@ -465,6 +559,32 @@ export class ApiClient {
       return { ok: true, data }
     }
     return { ok: false, status: '5XX', error: result.status }
+  }
+
+  // ── Platform credits: balance, top-up (Stripe checkout), key recovery ────
+
+  static getPlatformStatus(): Promise<PlatformRequestResult<PlatformStatus>> {
+    return platformRequest<PlatformStatus>('/api/platform/status', 'get')
+  }
+
+  static getPlatformBalance(): Promise<PlatformRequestResult<PlatformBalance>> {
+    return platformRequest<PlatformBalance>('/api/platform/balance', 'get')
+  }
+
+  static createPlatformCheckout(tier: number): Promise<PlatformRequestResult<PlatformCheckoutResponse>> {
+    return platformRequest<PlatformCheckoutResponse>('/api/platform/checkout', 'post', { tier })
+  }
+
+  static linkPlatformEmail(email: string): Promise<PlatformRequestResult<PlatformLinkEmailResponse>> {
+    return platformRequest<PlatformLinkEmailResponse>('/api/platform/link-email', 'post', { email })
+  }
+
+  static requestPlatformRecovery(email: string): Promise<PlatformRequestResult<PlatformRecoverResponse>> {
+    return platformRequest<PlatformRecoverResponse>('/api/platform/recover/request', 'post', { email })
+  }
+
+  static confirmPlatformRecovery(email: string, code: string): Promise<PlatformRequestResult<PlatformRecoverConfirmResponse>> {
+    return platformRequest<PlatformRecoverConfirmResponse>('/api/platform/recover/confirm', 'post', { email, code })
   }
 }
 

@@ -2,6 +2,7 @@ import { AlertCircle, Check, Download, Film, Folder, HardDrive, Info, KeyRound, 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from './ui/button'
 import { BaseModelSection } from './settings/BaseModelSection'
+import { CreditsPanel } from './settings/CreditsPanel'
 import { useAppSettings, type AppSettings } from '../contexts/AppSettingsContext'
 import { ApiClient, type ApiSuccessOf } from '../lib/api-client'
 import { logger } from '../lib/logger'
@@ -1388,6 +1389,8 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   )}
                 </div>
               </div>
+
+              <CreditsPanel />
             </>
           )}
 
