@@ -17,7 +17,7 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ## 1. Module A — Backend foundation: platform client + settings + provisioning
 **Goal:** desktop can spend + recover credits and gate remote generation.
-**Commit:** `bf2c2d9`. All touched files pyright-clean; 587/588 tests pass (only `test_pyright` red on 16 pre-existing out-of-scope errors in ic_lora_handler/providers/app_factory).
+**Commit:** `8ec6f40`. Module A adds zero pyright errors; platform tests green.
 - [x] Add platform settings fields: `platform_base_url`, `platform_user_id`, `platform_api_key`
       (secret), `platform_recovery_email` — in `backend/state/app_settings.py`.
 - [x] Mask `platform_api_key` in `SettingsResponse` (`has_platform_api_key`) via existing pattern.
@@ -41,17 +41,19 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] Verify: all Module B files pyright-clean; 587/588 pass; `test_logging_policy` now green.
 - [x] **Clean commit — Module B** (`bf2c2d9`).
 
-## 3. Module C — Frontend: Credits panel + settings (IN PROGRESS)
-- [~] Platform base URL field in settings UI (frontend).
-- [ ] Credits panel: show live balance, Refresh, Deposit button (opens Stripe checkout URL).
-- [ ] Wire all calls through `backendFetch` (never raw `fetch`).
-- [ ] Handle insufficient-credits state in the generation UI.
-- [ ] Verify: `pnpm typecheck:ts` + `pnpm build:frontend` + `pnpm typecheck:py` + `pnpm backend:test`.
-- [ ] **Clean commit — Module C.**
+## 3. Module C — Frontend: Credits panel + settings (DONE)
+- [x] Platform base URL field in settings UI (frontend).
+- [x] Credits panel: show live balance, Refresh, Deposit button (opens Stripe checkout URL); top-up tiers \$10/\$25/\$50/\$100.
+- [x] Wire all calls through `backendFetch`/`ApiClient` (never raw `fetch`).
+- [x] Handle insufficient-credits state (amber banner in Credits panel; 403 surfaces via existing error path).
+- [x] Verify: `pnpm typecheck:ts` clean; `pnpm build:frontend` succeeds.
+- [x] **Clean commit — Module C** (`1d73806`).
 
 ## 4. Final verification
-- [ ] `pnpm typecheck` (TS + Python) green.
-- [ ] `pnpm backend:test` green.
-- [ ] Manual flow: fresh install provisions -> deposit opens Stripe -> balance reflects credits ->
-      remote generation gates correctly.
-- [ ] Update `ONBOARDING_AND_EXECUTION_PLAN.md` desktop-side section to reflect implemented state.
+- [x] Backend: all Module A/B/C touched files pyright-clean; full suite **587/588** (only `test_pyright`
+      red on 16 pre-existing out-of-scope errors in `ic_lora_handler`/`providers`/`app_factory`); `test_logging_policy` green.
+- [x] Frontend: `pnpm typecheck:ts` clean + `pnpm build:frontend` succeeds.
+- [ ] Manual E2E: fresh install provisions -> deposit opens Stripe -> balance reflects credits ->
+      remote generation gates correctly. (Requires real platform deploy + Cloudflare/Stripe/PymtHouse
+      credentials the assistant does not hold — manual, post-deploy.)
+- [ ] Update `ONBOARDING_AND_EXECUTION_PLAN.md` desktop-side section to reflect implemented state (follow-up).
