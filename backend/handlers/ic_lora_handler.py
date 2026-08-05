@@ -215,7 +215,7 @@ class IcLoraHandler(StateHandlerBase):
         }
 
         try:
-            result = asyncio.run(client.call(runner, "/ltx-desktop/v1/extract-conditioning", payload, timeout_s=120))
+            result = asyncio.run(client.call(runner, "/video-creator/v1/extract-conditioning", payload, timeout_s=120))
         except Exception as exc:
             raise HTTPError(500, f"Remote runner failed: {exc}") from exc
 
@@ -278,7 +278,7 @@ class IcLoraHandler(StateHandlerBase):
                     })
 
         try:
-            result = asyncio.run(client.call(runner, "/ltx-desktop/v1/ic-lora-generate", payload, timeout_s=600))
+            result = asyncio.run(client.call(runner, "/video-creator/v1/ic-lora-generate", payload, timeout_s=600))
         except Exception as exc:
             raise HTTPError(500, f"Remote runner failed: {exc}") from exc
 

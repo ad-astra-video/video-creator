@@ -83,7 +83,7 @@ services:
               count: 1
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8991/ltx-desktop/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8991/video-creator/v1/health"]
       interval: 30s
       timeout: 5s
       retries: 3

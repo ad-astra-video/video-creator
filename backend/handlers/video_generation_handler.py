@@ -265,7 +265,7 @@ class VideoGenerationHandler(StateHandlerBase):
             ]
 
         gen_mode = "/i2v" if is_i2v else "/t2v"
-        endpoint = f"/ltx-desktop/v1{gen_mode}"
+        endpoint = f"/video-creator/v1{gen_mode}"
 
         # Start generation tracking. Remote Livepeer generation does not build a
         # local GPU pipeline, so this must use the API-slot lifecycle

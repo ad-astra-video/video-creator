@@ -295,7 +295,7 @@ class ImageGenerationHandler(StateHandlerBase):
                 self._generation.update_progress("sending_to_remote", 10, None, None)
 
                 try:
-                    result = asyncio.run(client.call(runner, "/ltx-desktop/v1/image", runner_payload, timeout_s=300))
+                    result = asyncio.run(client.call(runner, "/video-creator/v1/image", runner_payload, timeout_s=300))
                 except Exception as exc:
                     self._generation.fail_generation(str(exc))
                     raise HTTPError(500, f"Remote runner failed: {exc}") from exc

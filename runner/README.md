@@ -98,18 +98,18 @@ docker compose -f docker/docker-compose.runner.yml up
 
 ## Endpoints
 
-- `POST /ltx-desktop/v1/t2v` — text-to-video generation (accepts optional `loras`)
-- `POST /ltx-desktop/v1/i2v` — image-to-video generation (accepts optional `loras`)
-- `POST /ltx-desktop/v1/a2v` — audio-to-video generation (not supported on runner)
-- `POST /ltx-desktop/v1/image` — image generation
-- `POST /ltx-desktop/v1/extend` — video extend
-- `POST /ltx-desktop/v1/retake` — video retake
-- `POST /ltx-desktop/v1/prompt-enhance` — prompt enhancement (local Gemma or forwarded)
-- `POST /ltx-desktop/v1/suggest-gap-prompt` — gap prompt suggestion
-- `POST /ltx-desktop/v1/extract-conditioning` — IC-LoRA conditioning extraction
-- `POST /ltx-desktop/v1/ic-lora-generate` — IC-LoRA guided generation
-- `GET /ltx-desktop/v1/health` — health check
-- `GET /ltx-desktop/v1/info` — runner info (GPU, model, capabilities)
+- `POST /video-creator/v1/t2v` — text-to-video generation (accepts optional `loras`)
+- `POST /video-creator/v1/i2v` — image-to-video generation (accepts optional `loras`)
+- `POST /video-creator/v1/a2v` — audio-to-video generation (not supported on runner)
+- `POST /video-creator/v1/image` — image generation
+- `POST /video-creator/v1/extend` — video extend
+- `POST /video-creator/v1/retake` — video retake
+- `POST /video-creator/v1/prompt-enhance` — prompt enhancement (local Gemma or forwarded)
+- `POST /video-creator/v1/suggest-gap-prompt` — gap prompt suggestion
+- `POST /video-creator/v1/extract-conditioning` — IC-LoRA conditioning extraction
+- `POST /video-creator/v1/ic-lora-generate` — IC-LoRA guided generation
+- `GET /video-creator/v1/health` — health check
+- `GET /video-creator/v1/info` — runner info (GPU, model, capabilities)
 
 ## LoRA support (t2v / i2v)
 

@@ -186,7 +186,7 @@ class SuggestGapPromptHandler(StateHandlerBase):
 
         try:
             result = asyncio.run(
-                client.call(runner, "/ltx-desktop/v1/suggest-gap-prompt", runner_payload, timeout_s=30)
+                client.call(runner, "/video-creator/v1/suggest-gap-prompt", runner_payload, timeout_s=30)
             )
         except Exception as exc:
             raise HTTPError(500, f"Remote runner failed: {exc}") from exc

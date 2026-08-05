@@ -175,7 +175,7 @@ async def handle_info(_req: web.Request) -> web.Response:
 
 
 async def handle_t2v(req: web.Request) -> web.Response:
-    """POST /ltx-desktop/v1/t2v"""
+    """POST /video-creator/v1/t2v"""
     body = await req.json()
     assert engine
     prompt = body["prompt"]
@@ -215,7 +215,7 @@ async def handle_t2v(req: web.Request) -> web.Response:
 
 
 async def handle_i2v(req: web.Request) -> web.Response:
-    """POST /ltx-desktop/v1/i2v"""
+    """POST /video-creator/v1/i2v"""
     body = await req.json()
     assert engine
     prompt = body["prompt"]
@@ -256,7 +256,7 @@ async def handle_i2v(req: web.Request) -> web.Response:
 
 
 async def handle_a2v(req: web.Request) -> web.Response:
-    """POST /ltx-desktop/v1/a2v — audio-to-video (not supported on runner)"""
+    """POST /video-creator/v1/a2v — audio-to-video (not supported on runner)"""
     return web.json_response({
         "error": "A2V requires local inference or A2V-capable runner",
         "status": "not_supported",
@@ -264,7 +264,7 @@ async def handle_a2v(req: web.Request) -> web.Response:
 
 
 async def handle_image(req: web.Request) -> web.Response:
-    """POST /ltx-desktop/v1/image — text-to-image generation."""
+    """POST /video-creator/v1/image — text-to-image generation."""
     body = await req.json()
     assert engine
     prompt = body["prompt"]
@@ -306,7 +306,7 @@ async def handle_image(req: web.Request) -> web.Response:
 
 
 async def handle_extend(req: web.Request) -> web.Response:
-    """POST /ltx-desktop/v1/extend — extend a video by appending/prepending frames."""
+    """POST /video-creator/v1/extend — extend a video by appending/prepending frames."""
     body = await req.json()
     assert engine
     prompt = body["prompt"]
@@ -339,7 +339,7 @@ async def handle_extend(req: web.Request) -> web.Response:
 
 
 async def handle_retake(req: web.Request) -> web.Response:
-    """POST /ltx-desktop/v1/retake — regenerate a video segment with new prompt."""
+    """POST /video-creator/v1/retake — regenerate a video segment with new prompt."""
     body = await req.json()
     assert engine
     prompt = body["prompt"]
@@ -380,7 +380,7 @@ async def handle_retake(req: web.Request) -> web.Response:
 
 
 async def handle_prompt_enhance(req: web.Request) -> web.Response:
-    """POST /ltx-desktop/v1/prompt-enhance
+    """POST /video-creator/v1/prompt-enhance
 
     Enhance a prompt either via the local Gemma text encoder or, when
     ENHANCE_FORWARD_URL is configured, by proxying to a shared OpenAI-compatible
@@ -449,7 +449,7 @@ async def handle_prompt_enhance(req: web.Request) -> web.Response:
 
 
 async def handle_suggest_gap_prompt(req: web.Request) -> web.Response:
-    """POST /ltx-desktop/v1/suggest-gap-prompt — suggest a prompt to fill a gap between shots."""
+    """POST /video-creator/v1/suggest-gap-prompt — suggest a prompt to fill a gap between shots."""
     body = await req.json()
     before_prompt = body.get("before_prompt", "")
     after_prompt = body.get("after_prompt", "")
@@ -473,7 +473,7 @@ async def handle_suggest_gap_prompt(req: web.Request) -> web.Response:
 
 
 async def handle_extract_conditioning(req: web.Request) -> web.Response:
-    """POST /ltx-desktop/v1/extract-conditioning — extract conditioning frame from video."""
+    """POST /video-creator/v1/extract-conditioning — extract conditioning frame from video."""
     body = await req.json()
     assert engine
     video_base64 = body["video_base64"]
@@ -540,7 +540,7 @@ async def handle_extract_conditioning(req: web.Request) -> web.Response:
 
 
 async def handle_ic_lora_generate(req: web.Request) -> web.Response:
-    """POST /ltx-desktop/v1/ic-lora-generate — IC-LoRA guided generation.
+    """POST /video-creator/v1/ic-lora-generate — IC-LoRA guided generation.
 
     Accepts the same payload as T2V/I2V but with conditioning images.
     Delegates to i2v pipeline using the conditioning frame as input image.
@@ -759,7 +759,7 @@ def create_app() -> web.Application:
     # video (base64) in the request body. Raise it so attached media isn't
     # rejected with 413 "Maximum request body size ... exceeded".
     app = web.Application(client_max_size=_MAX_BODY_BYTES)
-    p = "/ltx-desktop/v1"
+    p = "/video-creator/v1"
     app.router.add_get(f"{p}/health", handle_health)
     app.router.add_get(f"{p}/info", handle_info)
     app.router.add_post(f"{p}/t2v", handle_t2v)

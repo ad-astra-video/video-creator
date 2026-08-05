@@ -73,7 +73,7 @@ RUN mkdir -p /models && chown runner:runner /models
 USER runner
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
-    CMD curl -f http://localhost:8991/ltx-desktop/v1/health || exit 1
+    CMD curl -f http://localhost:8991/video-creator/v1/health || exit 1
 
 EXPOSE 8991
 

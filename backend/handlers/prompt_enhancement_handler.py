@@ -138,7 +138,7 @@ class PromptEnhancementHandler(StateHandlerBase):
         # evicted/reloaded around it, so allow a generous timeout.
         try:
             result = asyncio.run(
-                client.call(runner, "/ltx-desktop/v1/prompt-enhance", runner_payload, timeout_s=180)
+                client.call(runner, "/video-creator/v1/prompt-enhance", runner_payload, timeout_s=180)
             )
         except Exception as exc:
             logger.error("Remote prompt enhancement failed: %s", exc)
