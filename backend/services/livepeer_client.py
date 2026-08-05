@@ -86,7 +86,7 @@ class LivepeerClient:
                 try:
                     async with session.get(
                         url,
-                        params={"app": "ltx-desktop"},
+                        params={"app": "video-creator"},
                         timeout=aiohttp.ClientTimeout(total=10),
                         headers=self._auth_headers(),
                     ) as resp:

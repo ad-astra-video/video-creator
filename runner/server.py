@@ -48,7 +48,7 @@ from runner.inference import LTXInferenceEngine
 from runner.loracache import LoraCache
 
 logger = logging.getLogger(__name__)
-APP_ID = "ltx-desktop"
+APP_ID = "video-creator"
 
 # Effective default system prompts for forwarded enhancement: an env override
 # wins, otherwise the built-in default used by enhance_forward (mirrors the
