@@ -49,7 +49,6 @@ import { buildIcLoraSelectorOptions, encodeIcLoraSelectorValue, parseIcLoraSelec
 import { SettingsDropdown } from '../components/SettingsDropdown'
 import { IcLoraSettingsControls, type IcLoraControlsProps } from '../components/IcLoraSettingsControls'
 import { IcLoraAdvancedPanel } from '../components/IcLoraAdvancedPanel'
-import { FreeApiKeyBubble } from '../components/FreeApiKeyBubble'
 
 // Asset card with hover overlays
 function AssetCard({
@@ -2862,12 +2861,6 @@ export function GenSpace() {
 
       {/* Floating prompt panel — wider, responsive, centered */}
       <div className="absolute bottom-5 left-1/2 w-[min(860px,calc(100%-2rem))] -translate-x-1/2">
-
-        <FreeApiKeyBubble
-          forceApiGenerations={forceApiGenerations}
-          hasLtxApiKey={appSettings.hasLtxApiKey}
-          isGenerating={isGenerating}
-        />
 
         {/* Active IC-LoRA (IC-LoRA view only). */}
         {mode === 'ic-lora' && isCatalogIcLora && selectedIcLora && (

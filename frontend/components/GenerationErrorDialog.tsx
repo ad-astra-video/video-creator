@@ -47,14 +47,8 @@ function getDialogModel(error: GenerationError): {
       switch (error.error.code) {
         case 'LTX_INSUFFICIENT_FUNDS':
           return {
-            humanMessage: 'Your LTX API credits are insufficient for this generation. Buy more credits in LTX and try again.',
+            humanMessage: 'Insufficient credits for this generation. Top up to continue.',
             technicalDetails: JSON.stringify(error.error, null, 2),
-            primaryAction: {
-              label: 'Buy Credits',
-              onClick: () => {
-                void window.electronAPI.openLtxBillingPage()
-              },
-            },
           }
       }
       return assertNever(error.error.code)
