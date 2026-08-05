@@ -413,6 +413,24 @@ function AppContent() {
 
     const sections: ApiGatewaySection[] = [
       {
+        keyType: 'livepeer',
+        title: 'Livepeer',
+        description: 'Use Livepeer network for inference. Supports video, image and text encoding. Choose in settings which to use.',
+        required: apiGatewayRequest.requiredKeys.includes('livepeer'),
+        isConfigured: settings.hasLivepeerDiscoveryUrl,
+        primaryLabel: 'Discovery URL',
+        primaryPlaceholder: 'https://orchestrator:8935/discovery',
+        inputLabel: 'Livepeer API key',
+        placeholder: 'Enter your Livepeer API key...',
+        onSave: saveLivepeerDiscoveryUrl,
+        onSaveLivepeer: async (url, key) => {
+          await saveLivepeerDiscoveryUrl(url)
+          if (key) {
+            await saveLivepeerApiKey(key)
+          }
+        },
+      },
+      {
         keyType: 'ltx',
         title: 'LTX API',
         description: 'Video generation, prompt enhancement, and cloud text encoding.',
@@ -435,24 +453,6 @@ function AppContent() {
         onSave: saveFalApiKey,
         onGetKey: () => window.electronAPI.openFalApiKeyPage(),
         getKeyLabel: 'Get FAL API key',
-      },
-      {
-        keyType: 'livepeer',
-        title: 'Livepeer',
-        description: 'Use Livepeer network for inference. Supports video, image and text encoding. Choose in settings which to use.',
-        required: apiGatewayRequest.requiredKeys.includes('livepeer'),
-        isConfigured: settings.hasLivepeerDiscoveryUrl,
-        primaryLabel: 'Discovery URL',
-        primaryPlaceholder: 'https://orchestrator:8935/discovery',
-        inputLabel: 'Livepeer API key',
-        placeholder: 'Enter your Livepeer API key...',
-        onSave: saveLivepeerDiscoveryUrl,
-        onSaveLivepeer: async (url, key) => {
-          await saveLivepeerDiscoveryUrl(url)
-          if (key) {
-            await saveLivepeerApiKey(key)
-          }
-        },
       },
     ]
 

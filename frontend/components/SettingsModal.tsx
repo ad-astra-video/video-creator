@@ -920,194 +920,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
 
           {activeTab === 'apiKeys' && (
             <>
-              {/* LTX API Key Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-blue-400" />
-                  <h3 className="text-sm font-semibold text-white">LTX API</h3>
-                </div>
-
-                <p className="text-xs text-zinc-500 leading-relaxed">
-                  Your LTX API key is used for cloud text encoding, prompt enhancement, and API video generation.
-                  Add your key below to unlock these features.
-                </p>
-
-                <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
-                  <div className="flex gap-2">
-                    <LtxApiKeyInput
-                      ref={ltxApiKey.inputRef}
-                      value={ltxApiKeyInput}
-                      onChange={(e) => setLtxApiKeyInput(e.target.value)}
-                      placeholder={settings.hasLtxApiKey ? 'Enter new key to replace...' : 'Enter your LTX API key...'}
-                      stopPropagation
-                      className="flex-1"
-                    />
-                    <button
-                      onClick={() => {
-                        const trimmed = ltxApiKeyInput.trim()
-                        if (!trimmed) return
-                        void saveLtxApiKey(trimmed)
-                        setLtxApiKeyInput('')
-                      }}
-                      disabled={!ltxApiKeyInput.trim()}
-                      className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                    >
-                      Save Key
-                    </button>
-                  </div>
-                  <LtxApiKeyHelperRow stopPropagation />
-                  <div className="flex items-center justify-between">
-                    <div className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1.5 ${
-                      settings.hasLtxApiKey
-                        ? 'bg-green-500/10 text-green-400'
-                        : 'bg-amber-500/10 text-amber-400'
-                    }`}>
-                      {settings.hasLtxApiKey ? (
-                        <>
-                          <Check className="h-3 w-3" />
-                          Key configured
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="h-3 w-3" />
-                          API key required
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* FAL API Key Section */}
-              <div className="space-y-4 pt-4 border-t border-zinc-800">
-                <div className="flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 text-cyan-400" />
-                  <h3 className="text-sm font-semibold text-white">FAL AI</h3>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">Optional</span>
-                </div>
-
-                <p className="text-xs text-zinc-500 leading-relaxed">
-                  Your FAL AI key is used for generating or editing images with Z Image Turbo when API generations are enabled.
-                </p>
-
-                <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
-                  <div className="flex gap-2">
-                    <LtxApiKeyInput
-                      ref={falApiKey.inputRef}
-                      value={falApiKeyInput}
-                      onChange={(e) => setFalApiKeyInput(e.target.value)}
-                      placeholder={settings.hasFalApiKey ? 'Enter new key to replace...' : 'Enter your FAL AI API key...'}
-                      stopPropagation
-                      className="flex-1"
-                    />
-                    <button
-                      onClick={() => {
-                        const trimmed = falApiKeyInput.trim()
-                        if (!trimmed) return
-                        void saveFalApiKey(trimmed)
-                        setFalApiKeyInput('')
-                      }}
-                      disabled={!falApiKeyInput.trim()}
-                      className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                    >
-                      Save Key
-                    </button>
-                  </div>
-                  <ApiKeyHelperRow
-                    stopPropagation
-                    label="Get FAL API key"
-                    onOpenKey={() => window.electronAPI.openFalApiKeyPage()}
-                  />
-                  <div className="flex items-center justify-between">
-                    <div className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1.5 ${
-                      settings.hasFalApiKey
-                        ? 'bg-green-500/10 text-green-400'
-                        : 'bg-zinc-800 text-zinc-500'
-                    }`}>
-                      {settings.hasFalApiKey ? (
-                        <>
-                          <Check className="h-3 w-3" />
-                          Key configured
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="h-3 w-3" />
-                          Optional
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Gemini API Key Section */}
-              <div className="space-y-4 pt-4 border-t border-zinc-800">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-purple-400" />
-                  <h3 className="text-sm font-semibold text-white">Gemini API</h3>
-                </div>
-
-                <p className="text-xs text-zinc-500 leading-relaxed">
-                  Your Gemini API key is used for AI-powered prompt suggestions when filling timeline gaps, and for the Enhance (API) prompt enhancer.
-                </p>
-
-                <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
-                  <div className="flex gap-2">
-                    <input
-                      ref={geminiApiKeyInputRef}
-                      type="password"
-                      value={geminiApiKeyInput}
-                      onChange={(e) => setGeminiApiKeyInput(e.target.value)}
-                      placeholder={settings.hasGeminiApiKey ? 'Enter new key to replace...' : 'Enter your Gemini API key...'}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <button
-                      onClick={() => {
-                        const trimmed = geminiApiKeyInput.trim()
-                        if (!trimmed) return
-                        void saveGeminiApiKey(trimmed)
-                        setGeminiApiKeyInput('')
-                      }}
-                      disabled={!geminiApiKeyInput.trim()}
-                      className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                    >
-                      Save Key
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1.5 ${
-                      settings.hasGeminiApiKey
-                        ? 'bg-green-500/10 text-green-400'
-                        : 'bg-amber-500/10 text-amber-400'
-                    }`}>
-                      {settings.hasGeminiApiKey ? (
-                        <>
-                          <Check className="h-3 w-3" />
-                          Key configured
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="h-3 w-3" />
-                          API key required
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <a
-                      href="https://aistudio.google.com/app/apikey"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Get Gemini API key →
-                    </a>
-                  </div>
-                </div>
-              </div>
-
               {/* Livepeer Section */}
               <div className="space-y-4 pt-4 border-t border-zinc-800">
                 <div className="flex items-center gap-2">
@@ -1342,7 +1154,196 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                 </div>
               </div>
 
-              <CreditsPanel />
+              
+              {/* LTX API Key Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-blue-400" />
+                  <h3 className="text-sm font-semibold text-white">LTX API</h3>
+                </div>
+
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Your LTX API key is used for cloud text encoding, prompt enhancement, and API video generation.
+                  Add your key below to unlock these features.
+                </p>
+
+                <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
+                  <div className="flex gap-2">
+                    <LtxApiKeyInput
+                      ref={ltxApiKey.inputRef}
+                      value={ltxApiKeyInput}
+                      onChange={(e) => setLtxApiKeyInput(e.target.value)}
+                      placeholder={settings.hasLtxApiKey ? 'Enter new key to replace...' : 'Enter your LTX API key...'}
+                      stopPropagation
+                      className="flex-1"
+                    />
+                    <button
+                      onClick={() => {
+                        const trimmed = ltxApiKeyInput.trim()
+                        if (!trimmed) return
+                        void saveLtxApiKey(trimmed)
+                        setLtxApiKeyInput('')
+                      }}
+                      disabled={!ltxApiKeyInput.trim()}
+                      className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    >
+                      Save Key
+                    </button>
+                  </div>
+                  <LtxApiKeyHelperRow stopPropagation />
+                  <div className="flex items-center justify-between">
+                    <div className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1.5 ${
+                      settings.hasLtxApiKey
+                        ? 'bg-green-500/10 text-green-400'
+                        : 'bg-amber-500/10 text-amber-400'
+                    }`}>
+                      {settings.hasLtxApiKey ? (
+                        <>
+                          <Check className="h-3 w-3" />
+                          Key configured
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="h-3 w-3" />
+                          API key required
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* FAL API Key Section */}
+              <div className="space-y-4 pt-4 border-t border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-cyan-400" />
+                  <h3 className="text-sm font-semibold text-white">FAL AI</h3>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">Optional</span>
+                </div>
+
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Your FAL AI key is used for generating or editing images with Z Image Turbo when API generations are enabled.
+                </p>
+
+                <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
+                  <div className="flex gap-2">
+                    <LtxApiKeyInput
+                      ref={falApiKey.inputRef}
+                      value={falApiKeyInput}
+                      onChange={(e) => setFalApiKeyInput(e.target.value)}
+                      placeholder={settings.hasFalApiKey ? 'Enter new key to replace...' : 'Enter your FAL AI API key...'}
+                      stopPropagation
+                      className="flex-1"
+                    />
+                    <button
+                      onClick={() => {
+                        const trimmed = falApiKeyInput.trim()
+                        if (!trimmed) return
+                        void saveFalApiKey(trimmed)
+                        setFalApiKeyInput('')
+                      }}
+                      disabled={!falApiKeyInput.trim()}
+                      className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    >
+                      Save Key
+                    </button>
+                  </div>
+                  <ApiKeyHelperRow
+                    stopPropagation
+                    label="Get FAL API key"
+                    onOpenKey={() => window.electronAPI.openFalApiKeyPage()}
+                  />
+                  <div className="flex items-center justify-between">
+                    <div className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1.5 ${
+                      settings.hasFalApiKey
+                        ? 'bg-green-500/10 text-green-400'
+                        : 'bg-zinc-800 text-zinc-500'
+                    }`}>
+                      {settings.hasFalApiKey ? (
+                        <>
+                          <Check className="h-3 w-3" />
+                          Key configured
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="h-3 w-3" />
+                          Optional
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gemini API Key Section */}
+              <div className="space-y-4 pt-4 border-t border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-400" />
+                  <h3 className="text-sm font-semibold text-white">Gemini API</h3>
+                </div>
+
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Your Gemini API key is used for AI-powered prompt suggestions when filling timeline gaps, and for the Enhance (API) prompt enhancer.
+                </p>
+
+                <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      ref={geminiApiKeyInputRef}
+                      type="password"
+                      value={geminiApiKeyInput}
+                      onChange={(e) => setGeminiApiKeyInput(e.target.value)}
+                      placeholder={settings.hasGeminiApiKey ? 'Enter new key to replace...' : 'Enter your Gemini API key...'}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={() => {
+                        const trimmed = geminiApiKeyInput.trim()
+                        if (!trimmed) return
+                        void saveGeminiApiKey(trimmed)
+                        setGeminiApiKeyInput('')
+                      }}
+                      disabled={!geminiApiKeyInput.trim()}
+                      className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    >
+                      Save Key
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className={`text-xs px-2 py-1 rounded inline-flex items-center gap-1.5 ${
+                      settings.hasGeminiApiKey
+                        ? 'bg-green-500/10 text-green-400'
+                        : 'bg-amber-500/10 text-amber-400'
+                    }`}>
+                      {settings.hasGeminiApiKey ? (
+                        <>
+                          <Check className="h-3 w-3" />
+                          Key configured
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="h-3 w-3" />
+                          API key required
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Get Gemini API key →
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+<CreditsPanel />
             </>
           )}
 
