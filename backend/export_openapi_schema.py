@@ -71,6 +71,7 @@ def _build_schema() -> dict[str, object]:
             a2v_pipeline_class=cast(Any, type(fake.a2v_pipeline)),
             retake_pipeline_class=cast(Any, type(fake.retake_pipeline)),
             prompt_enhancer_pipeline_class=cast(Any, type(fake.prompt_enhancer_pipeline)),
+            platform_client=cast(Any, fake.platform_client),
         )
 
         handler = build_initial_state(config, AppSettings(), service_bundle=bundle)

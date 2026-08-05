@@ -15,6 +15,7 @@ from handlers.retake_handler import RetakeHandler
 from handlers.extend_handler import ExtendHandler
 from handlers.runtime_policy_handler import RuntimePolicyHandler
 from handlers.settings_handler import SettingsHandler
+from handlers.platform_handler import PlatformHandler
 from handlers.text_handler import TextHandler
 from handlers.video_generation_handler import VideoGenerationHandler
 
@@ -36,4 +37,5 @@ __all__ = [
     "HuggingFaceAuthHandler",
     "LoraCatalogHandler",
     "PromptEnhancementHandler",
+    "PlatformHandler",
 ]

@@ -27,6 +27,7 @@ from api_types import (
 from services.interfaces import VideoInfoPayload
 from services.ltx_api_client.ltx_api_client import LTXRetakeResult
 from tests.fakes.fake_gpu_info import FakeGpuInfo
+from tests.fakes.fake_platform_client import FakePlatformClient
 
 
 def _dl(repo_id: str, filename: str, size_bytes: int = 10) -> DownloadSpec:
@@ -1016,6 +1017,7 @@ class FakeServices:
     a2v_pipeline: FakeA2VPipeline = field(default_factory=FakeA2VPipeline)
     retake_pipeline: FakeRetakePipeline = field(default_factory=FakeRetakePipeline)
     prompt_enhancer_pipeline: FakePromptEnhancerPipeline = field(default_factory=FakePromptEnhancerPipeline)
+    platform_client: FakePlatformClient = field(default_factory=FakePlatformClient)
 
     def __post_init__(self) -> None:
         FakeFastVideoPipeline.bind_singleton(self.fast_video_pipeline)

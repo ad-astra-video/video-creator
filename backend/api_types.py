@@ -324,6 +324,26 @@ class StatusResponse(BaseModel):
     status: str
 
 
+def _to_camel_case_alias(field_name: str) -> str:
+    head, *tail = field_name.split("_")
+    return head + "".join(part.title() for part in tail)
+
+
+class PlatformStatusResponse(BaseModel):
+    """Per-install platform credits provisioning status (no secrets).
+
+    Uses camelCase JSON aliases (like the rest of the API) while keeping the
+    Python field names snake_case.
+    """
+
+    model_config = ConfigDict(alias_generator=_to_camel_case_alias, populate_by_name=True)
+
+    user_id: str
+    configured: bool
+    has_api_key: bool
+    base_url: str
+
+
 class HTTPErrorResponse(BaseModel):
     code: str
     message: str

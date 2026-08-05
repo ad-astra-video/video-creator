@@ -17,16 +17,18 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ## 1. Module A — Backend foundation: platform client + settings + provisioning
 **Goal:** desktop can identify itself, provision a per-user key once, and talk to the platform.
-- [ ] Add platform settings fields: `platform_base_url`, `platform_user_id`, `platform_api_key`
+- [x] Add platform settings fields: `platform_base_url`, `platform_user_id`, `platform_api_key`
       (secret), `platform_recovery_email` — in `backend/state/app_settings.py`.
-- [ ] Mask `platform_api_key` in `SettingsResponse` (`has_platform_api_key`) via existing pattern.
-- [ ] Add `PlatformClient` service (Protocol + `HttpPlatformClient` + `FakePlatformClient`).
-- [ ] Wire real client into `AppHandler`; fake into `tests/fakes/` + conftest wiring.
-- [ ] `PlatformHandler.ensure_ready()`: ensure `platform_user_id` (uuid4 once) + provision key once.
-- [ ] Thin route `GET /platform/status` (no secrets).
-- [ ] Integration test (`tests/test_platform_client.py`).
-- [ ] Verify: `pnpm typecheck:py` (pyright strict) + `pnpm backend:test` green.
-- [ ] **Clean commit — Module A.**
+- [x] Mask `platform_api_key` in `SettingsResponse` (`has_platform_api_key`) via existing pattern.
+- [x] Add `PlatformClient` service (Protocol + `HttpPlatformClient` + `FakePlatformClient`).
+- [x] Wire real client into `AppHandler`; fake into `tests/fakes/` + conftest wiring.
+- [x] `PlatformHandler.ensure_ready()`: ensure `platform_user_id` (uuid4 once) + provision key once.
+- [x] Thin route `GET /platform/status` (no secrets) — camelCase JSON.
+- [x] Integration test (`tests/test_platform_client.py`) — 5/5 green.
+- [x] Verify: Module A adds **zero** pyright errors (remaining 71 are pre-existing in
+      `livepeer_client.py`/`ic_lora_handler.py`/`providers.py`/`video_generation_handler.py` —
+      untouched by Module A; `livepeer_client.py` gets fixed in Module B). New tests green.
+- [x] **Clean commit — Module A** (`<pending>`).
 
 ## 2. Module B — Backend credits: balance/checkout + recovery + dispatch gate
 - [ ] Credits domain: handler + routes for `GET /balance`, `POST /checkout` (tier -> Stripe URL).

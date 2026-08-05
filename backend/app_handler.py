@@ -22,6 +22,7 @@ from handlers import (
     ExtendHandler,
     RuntimePolicyHandler,
     SettingsHandler,
+    PlatformHandler,
     TextHandler,
     VideoGenerationHandler,
 )
@@ -46,6 +47,7 @@ from services.interfaces import (
     VideoProcessor,
 )
 from services.lora_catalog import LoraCatalogProvider
+from services.platform_client import HttpPlatformClient, PlatformClient
 from services.prompt_enhancer_pipeline.gemini_prompt_enhancer_pipeline import GeminiPromptEnhancerPipeline
 from state.app_state_types import AppState, TextEncoderState
 
@@ -75,6 +77,7 @@ class AppHandler:
         a2v_pipeline_class: type[A2VPipeline],
         retake_pipeline_class: type[RetakePipeline],
         prompt_enhancer_pipeline_class: type[PromptEnhancerPipeline],
+        platform_client: PlatformClient,
     ) -> None:
         self.config = config
 
@@ -95,6 +98,7 @@ class AppHandler:
         self.a2v_pipeline_class = a2v_pipeline_class
         self.retake_pipeline_class = retake_pipeline_class
         self.prompt_enhancer_pipeline_class = prompt_enhancer_pipeline_class
+        self.platform_client = platform_client
 
         self._lock = threading.RLock()
 
@@ -115,6 +119,14 @@ class AppHandler:
             state=self.state,
             lock=self._lock,
             config=config,
+        )
+
+        self.platform = PlatformHandler(
+            state=self.state,
+            lock=self._lock,
+            config=config,
+            settings_handler=self.settings,
+            platform_client=platform_client,
         )
 
         self.models = ModelsHandler(
@@ -286,6 +298,7 @@ class ServiceBundle:
     a2v_pipeline_class: type[A2VPipeline]
     retake_pipeline_class: type[RetakePipeline]
     prompt_enhancer_pipeline_class: type[PromptEnhancerPipeline]
+    platform_client: PlatformClient
 
 
 def build_default_service_bundle(config: RuntimeConfig) -> ServiceBundle:
@@ -336,6 +349,7 @@ def build_default_service_bundle(config: RuntimeConfig) -> ServiceBundle:
         a2v_pipeline_class=LTXa2vPipeline,
         retake_pipeline_class=LTXRetakePipeline,
         prompt_enhancer_pipeline_class=LtxPromptEnhancerPipeline,
+        platform_client=HttpPlatformClient(http=http),
     )
 
 
@@ -367,4 +381,5 @@ def build_initial_state(
         a2v_pipeline_class=bundle.a2v_pipeline_class,
         retake_pipeline_class=bundle.retake_pipeline_class,
         prompt_enhancer_pipeline_class=bundle.prompt_enhancer_pipeline_class,
+        platform_client=bundle.platform_client,
     )

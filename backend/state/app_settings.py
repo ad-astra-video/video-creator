@@ -78,6 +78,13 @@ class AppSettings(SettingsBaseModel):
     livepeer_api_key: str = ""
     livepeer_selected_runner_id: str = ""
     livepeer_excluded_runner_ids: list[str] = Field(default_factory=list)
+    # Remote "platform" credits API (per-install identity + top-up later).
+    platform_base_url: str = ""
+    platform_user_id: str = ""
+    # Per-user API key issued by the platform's /provision endpoint. A SECRET — the
+    # settings response masks it as `has_platform_api_key` (mirrors livepeer_api_key).
+    platform_api_key: str = ""
+    platform_recovery_email: str = ""
 
     @field_validator("prompt_cache_size", mode="before")
     @classmethod
@@ -162,6 +169,12 @@ class SettingsResponse(SettingsBaseModel):
     has_livepeer_api_key: bool = False
     livepeer_selected_runner_id: str = ""
     livepeer_excluded_runner_ids: list[str] = Field(default_factory=list)
+    # Platform credits API — user_id/email pass through; the api key is masked.
+    platform_base_url: str = ""
+    has_platform_base_url: bool = False
+    platform_user_id: str = ""
+    has_platform_api_key: bool = False
+    platform_recovery_email: str = ""
 
 
 def to_settings_response(settings: AppSettings) -> SettingsResponse:
@@ -170,11 +183,14 @@ def to_settings_response(settings: AppSettings) -> SettingsResponse:
     fal_key = data.pop("fal_api_key", "")
     gemini_key = data.pop("gemini_api_key", "")
     lpkey = data.pop("livepeer_api_key", "")
+    platform_key = data.pop("platform_api_key", "")
     data["has_ltx_api_key"] = bool(ltx_key)
     data["has_fal_api_key"] = bool(fal_key)
     data["has_gemini_api_key"] = bool(gemini_key)
     data["has_livepeer_discovery_url"] = bool(data.get("livepeer_discovery_url", ""))
     data["has_livepeer_api_key"] = bool(lpkey)
+    data["has_platform_base_url"] = bool(data.get("platform_base_url", ""))
+    data["has_platform_api_key"] = bool(platform_key)
     # models_dir passes through as-is (not secret)
     return SettingsResponse.model_validate(data)
 

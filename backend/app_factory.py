@@ -29,7 +29,9 @@ from _routes.extend import router as extend_router
 from _routes.runtime_policy import router as runtime_policy_router
 from _routes.settings import router as settings_router
 from _routes.providers import router as providers_router
+from _routes.platform import router as platform_router
 from api_types import HTTPErrorResponse
+
 from logging_policy import log_http_error, log_unhandled_exception
 from state import init_state_service
 from pathlib import Path
@@ -160,6 +162,7 @@ def create_app(
     app.include_router(generation_router)
     app.include_router(models_router)
     app.include_router(settings_router)
+    app.include_router(platform_router)
     app.include_router(image_gen_router)
     app.include_router(suggest_gap_prompt_router)
     app.include_router(retake_router)
