@@ -4,8 +4,11 @@ The desktop talks to a remote platform worker that owns all secrets and the
 credit ledger. This module is the narrow HTTP boundary for that API:
 
 - ``POST {base}/provision``  body {externalUserId} -> 200 {apiKey, externalUserId}
-- ``GET  {base}/balance``    header ``Authorization: Bearer <key>`` -> {hasAccess, ...}
-- ``POST {base}/checkout``   header ``Authorization: Bearer <key>``; body {tier} -> {url}
+- ``GET  {base}/balance``    header ``Authorization: Bearer *** -> {hasAccess, ...}
+- ``POST {base}/checkout``   header ``Authorization: Bearer *** body {tier} -> {url}
+- ``POST {base}/link-email`` header ``Authorization: Bearer *** body {email} -> sets recovery email
+- ``POST {base}/recover/request`` body {email} -> emails a one-time code
+- ``POST {base}/recover/confirm`` body {email, code} -> 200 {apiKey} (rotates a lost key)
 
 ``base_url`` is a per-user setting, so it is passed per-call rather than baked into
 the client (the client stays a stateless HTTP boundary, mirroring how ``HTTPClient``
@@ -47,6 +50,18 @@ class PlatformClient(Protocol):
 
     def create_checkout(self, *, base_url: str, api_key: str, tier_credits_cents: int) -> str:
         """Create a checkout session for the given top-up tier. Returns the hosted URL."""
+        ...
+
+    def link_email(self, *, base_url: str, api_key: str, email: str) -> None:
+        """Associate ``email`` with ``api_key`` as the recovery email."""
+        ...
+
+    def recover_request(self, *, base_url: str, email: str) -> None:
+        """Ask the platform to email a one-time recovery code to ``email``."""
+        ...
+
+    def recover_confirm(self, *, base_url: str, email: str, code: str) -> str:
+        """Confirm a recovery code, rotating the lost key. Returns the NEW key."""
         ...
 
 
@@ -107,3 +122,32 @@ class HttpPlatformClient:
         if not isinstance(url, str) or not url:
             raise PlatformError(resp.status_code, "platform checkout response missing url")
         return url
+
+    def link_email(self, *, base_url: str, api_key: str, email: str) -> None:
+        resp = self._http.post(
+            self._url(base_url, "/link-email"),
+            headers={"Authorization": f"Bearer {api_key}"},
+            json_payload={"email": email},
+            timeout=self._timeout,
+        )
+        self._require_json(resp, "link-email")
+
+    def recover_request(self, *, base_url: str, email: str) -> None:
+        resp = self._http.post(
+            self._url(base_url, "/recover/request"),
+            json_payload={"email": email},
+            timeout=self._timeout,
+        )
+        self._require_json(resp, "recover/request")
+
+    def recover_confirm(self, *, base_url: str, email: str, code: str) -> str:
+        resp = self._http.post(
+            self._url(base_url, "/recover/confirm"),
+            json_payload={"email": email, "code": code},
+            timeout=self._timeout,
+        )
+        payload = self._require_json(resp, "recover/confirm")
+        key = payload.get("apiKey")
+        if not isinstance(key, str) or not key:
+            raise PlatformError(resp.status_code, "platform recover/confirm response missing apiKey")
+        return key

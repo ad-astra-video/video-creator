@@ -344,6 +344,76 @@ class PlatformStatusResponse(BaseModel):
     base_url: str
 
 
+
+class PlatformBalanceResponse(BaseModel):
+    """Platform credit balance/access snapshot (no secrets).
+
+    ``has_access`` reflects the platform's ``hasAccess`` flag; the USD micros fields
+    are integers (the raw platform payload strings are parsed by the handler). When the
+    platform is not configured the handler returns zeros with ``configured=False``.
+    """
+
+    model_config = ConfigDict(alias_generator=_to_camel_case_alias, populate_by_name=True)
+
+    has_access: bool
+    balance_usd_micros: int
+    remaining_usd_micros: int
+    consumed_usd_micros: int
+    lifetime_granted_usd_micros: int
+    configured: bool
+
+
+class PlatformCheckoutRequest(BaseModel):
+    """Request to start a credit top-up checkout. ``tier`` is credits in cents."""
+
+    model_config = ConfigDict(alias_generator=_to_camel_case_alias, populate_by_name=True)
+
+    tier: int
+
+
+class PlatformCheckoutResponse(BaseModel):
+    """Hosted checkout URL, or an empty ``url`` with ``configured=False``."""
+
+    model_config = ConfigDict(alias_generator=_to_camel_case_alias, populate_by_name=True)
+
+    url: str
+    configured: bool
+
+
+class PlatformRecoverRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=_to_camel_case_alias, populate_by_name=True)
+
+    email: str
+
+
+class PlatformRecoverConfirmRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=_to_camel_case_alias, populate_by_name=True)
+
+    email: str
+    code: str
+
+
+class PlatformRecoverConfirmResponse(BaseModel):
+    """Outcome of confirming a recovery code (key rotated on success)."""
+
+    model_config = ConfigDict(alias_generator=_to_camel_case_alias, populate_by_name=True)
+
+    has_api_key: bool
+    configured: bool
+
+
+class PlatformLinkEmailRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=_to_camel_case_alias, populate_by_name=True)
+
+    email: str
+
+
+class PlatformLinkEmailResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=_to_camel_case_alias, populate_by_name=True)
+
+    configured: bool
+
+
 class HTTPErrorResponse(BaseModel):
     code: str
     message: str

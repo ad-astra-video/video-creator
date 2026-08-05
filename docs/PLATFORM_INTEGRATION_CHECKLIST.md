@@ -16,7 +16,8 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] Populated checklist file (this) at start of implementation.
 
 ## 1. Module A — Backend foundation: platform client + settings + provisioning
-**Goal:** desktop can identify itself, provision a per-user key once, and talk to the platform.
+**Goal:** desktop can spend + recover credits and gate remote generation.
+**Status:** implementation dispatched (deleg_1f074145); will fix pre-existing livepeer_client.py pyright/logging failures in the same pass.
 - [x] Add platform settings fields: `platform_base_url`, `platform_user_id`, `platform_api_key`
       (secret), `platform_recovery_email` — in `backend/state/app_settings.py`.
 - [x] Mask `platform_api_key` in `SettingsResponse` (`has_platform_api_key`) via existing pattern.
@@ -28,9 +29,9 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] Verify: Module A adds **zero** pyright errors (remaining 71 are pre-existing in
       `livepeer_client.py`/`ic_lora_handler.py`/`providers.py`/`video_generation_handler.py` —
       untouched by Module A; `livepeer_client.py` gets fixed in Module B). New tests green.
-- [x] **Clean commit — Module A** (`<pending>`).
+- [x] **Clean commit — Module A** (`8ec6f40`).
 
-## 2. Module B — Backend credits: balance/checkout + recovery + dispatch gate
+## 2. Module B — Backend credits: balance/checkout + recovery + dispatch gate (IN PROGRESS)
 - [ ] Credits domain: handler + routes for `GET /balance`, `POST /checkout` (tier -> Stripe URL).
 - [ ] Recovery endpoints: `POST /link-email`, `POST /recover/confirm` (lost-key rotation).
 - [ ] Balance gate in `services/livepeer_client.py` dispatch (block remote job when `hasAccess` false;

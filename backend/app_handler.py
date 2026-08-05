@@ -192,6 +192,7 @@ class AppHandler:
             ltx_api_client=ltx_api_client,
             lora_catalog=lora_catalog_provider,
             config=config,
+            remote_generation_gate=self.platform.ensure_generation_allowed,
         )
 
         self.image_generation = ImageGenerationHandler(

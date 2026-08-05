@@ -1,21 +1,19 @@
 """Livepeer remote inference client.
 
 Discovers runners through orchestrators and routes generation requests.
+
 """
 from __future__ import annotations
 
 import asyncio
 import base64
 import logging
+import ssl
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Any, cast
 
 import aiohttp
-import ssl
-
-if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +21,15 @@ logger = logging.getLogger(__name__)
 class RunnerInfo:
     """Normalized runner metadata from discovery."""
 
-    def __init__(self, runner_id: str, url: str, raw: dict) -> None:
+    def __init__(self, runner_id: str, url: str, raw: dict[str, Any]) -> None:
         self.runner_id = runner_id
         self.url = url
         self.raw = raw
-        self.gpu = raw.get("gpu", {})
-        self.price_info = raw.get("price_info")
-        self.status = raw.get("status", "ready")
+        self.gpu: Any = raw.get("gpu", {})
+        self.price_info: Any = raw.get("price_info")
+        self.status: str = str(raw.get("status", "ready"))
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "runner_id": self.runner_id,
             "url": self.url,
@@ -50,7 +48,7 @@ class LivepeerClient:
         self.api_key = api_key
         self.results_dir.mkdir(parents=True, exist_ok=True)
         self._runners: dict[str, RunnerInfo] = {}
-        self._discovery_task: asyncio.Task | None = None
+        self._discovery_task: asyncio.Task[Any] | None = None
         # Self-signed test orchestrator on .8 → skip TLS verification (matches
         # the livepeer gateway SDK's ssl=False).
         self._ssl = ssl.create_default_context()
@@ -58,7 +56,7 @@ class LivepeerClient:
         self._ssl.verify_mode = ssl.CERT_NONE
 
     @staticmethod
-    def _ssl_ctx():
+    def _ssl_ctx() -> ssl.SSLContext:
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
@@ -93,9 +91,9 @@ class LivepeerClient:
                         headers=self._auth_headers(),
                     ) as resp:
                         if resp.status == 200:
-                            data = await resp.json()
+                            data: Any = await resp.json()
                             for runner_raw in self._parse_discovery(data):
-                                rid = runner_raw.get("runner_id", "")
+                                rid: Any = runner_raw.get("runner_id", "")
                                 if not rid:
                                     # go-livepeer gives proxy URLs of the form
                                     # .../apps/runner_XXXXX/app → take the 2nd-to-last segment
@@ -115,17 +113,17 @@ class LivepeerClient:
                         else:
                             logger.warning("Discovery endpoint returned HTTP %d", resp.status)
                 except Exception:
-                    logger.exception("Discovery request failed")
+                    logger.error("Discovery request failed", exc_info=True)
 
                 self._runners = runners
                 logger.info("Discovered %d runners", len(self._runners))
                 return list(self._runners.values())
         except Exception:
-            logger.exception("Discovery failed")
+            logger.error("Discovery failed", exc_info=True)
             return []
 
     @staticmethod
-    def _parse_discovery(data):
+    def _parse_discovery(data: Any) -> list[dict[str, Any]]:
         """Normalize go-livepeer discovery output into a flat runner list.
 
         go-livepeer returns ``[{address, runners: [ {url, gpu, app, mode, ...} ]}]``.
@@ -135,13 +133,13 @@ class LivepeerClient:
         """
         if not isinstance(data, list):
             return []
-        flat = []
-        for entry in data:
-            if not isinstance(entry, dict):
-                continue
-            if "runners" in entry and isinstance(entry["runners"], list):
-                for r in entry["runners"]:
-                    item = dict(r)
+        typed_data = cast(list[dict[str, Any]], data)
+        flat: list[dict[str, Any]] = []
+        for entry in typed_data:
+            runners_raw: Any = entry.get("runners")
+            if isinstance(runners_raw, list):
+                for r in cast(list[Any], runners_raw):
+                    item: dict[str, Any] = dict(r)
                     item.setdefault("runner_url", item.get("url", ""))
                     flat.append(item)
             elif "runner_id" in entry or "runner_url" in entry:
@@ -187,8 +185,8 @@ class LivepeerClient:
         return runner
 
     async def call(
-        self, runner: RunnerInfo, endpoint: str, payload: dict, timeout_s: float = 600.0
-    ) -> dict:
+        self, runner: RunnerInfo, endpoint: str, payload: dict[str, Any], timeout_s: float = 600.0
+    ) -> dict[str, Any]:
         """Call a runner endpoint and return JSON."""
         runner_url = runner.url.rstrip("/") + endpoint
         logger.info("Calling runner %s %s", runner.runner_id, runner_url)

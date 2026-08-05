@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from threading import RLock
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from PIL import Image
 
@@ -77,6 +77,7 @@ class VideoGenerationHandler(StateHandlerBase):
         ltx_api_client: LTXAPIClient,
         lora_catalog: LoraCatalogProvider,
         config: RuntimeConfig,
+        remote_generation_gate: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(state, lock, config)
         self._generation = generation_handler
@@ -84,6 +85,7 @@ class VideoGenerationHandler(StateHandlerBase):
         self._text = text_handler
         self._ltx_api_client = ltx_api_client
         self._catalog = lora_catalog
+        self._remote_generation_gate = remote_generation_gate
 
     def get_model_specs(self) -> GenerateVideoModelsSpecsResponse:
         return build_generate_video_model_specs_response()
@@ -95,6 +97,10 @@ class VideoGenerationHandler(StateHandlerBase):
             self.state.app_settings.livepeer_video_enabled
             and self.state.app_settings.livepeer_discovery_url.strip()
         ):
+            # Balance gate: block remote Livepeer generation when the platform is
+            # configured but has no credits (no-op when platform not configured).
+            if self._remote_generation_gate is not None:
+                self._remote_generation_gate()
             return self._generate_via_livepeer(req)
 
         use_api_specs = should_video_generate_with_ltx_api(
@@ -230,10 +236,9 @@ class VideoGenerationHandler(StateHandlerBase):
             w, h = h, w
         w = round(w / 64) * 64
         h = round(h / 64) * 64
-        num_frames = self._compute_num_frames(req.duration, req.fps)
-
         # Build payload
         is_i2v = req.imagePath is not None and req.imagePath != ""
+        image_b64: str | None = None
         if is_i2v:
             image_path = normalize_optional_path(req.imagePath)
             image_data = Path(image_path).read_bytes() if image_path else b""
