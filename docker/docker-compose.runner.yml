@@ -1,0 +1,94 @@
+# LTX Desktop Runner — node-operator composition
+# =================================================
+# Builds + runs the GPU inference runner. Optionally also brings up a local
+# go-livepeer orchestrator (offchain live-runner mode) if you want to test the
+# full discovery/heartbeat path on one box.
+#
+# Usage:
+#   # Runner against an existing orchestrator (see env vars):
+#   docker compose -f docker/docker-compose.runner.yml up --build runner
+#
+#   # Full local stack: orchestrator + runner together:
+#   docker compose -f docker/docker-compose.runner.yml up --build
+#
+# The runner needs the model files bind-mounted at /models. Set the compose
+# `MODELS_DIR` variable to your host models path:
+#   MODELS_DIR=/home/brad/models \
+#     docker compose -f docker/docker-compose.runner.yml up --build runner
+
+name: ltx-desktop-runner
+
+services:
+  orchestrator:
+    image: livepeer/go-livepeer:v0.9.0
+    container_name: ltx-runner-orchestrator
+    # go-livepeer's image entrypoint is `livepeer`, so these are flags only.
+    command:
+      - -orchestrator
+      - -useLiveRunners
+      - -serviceAddr=https://orchestrator:8935
+      - -httpAddr=0.0.0.0:8935
+      - -liveRunnerAddr=https://orchestrator:8935
+      - -orchSecret=abcdef
+      - -network=offchain
+      - -monitor=false
+      - -v=6
+    ports:
+      - "8935:8935"
+    networks:
+      - ltx
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'GET /healthz HTTP/1.0\\r\\n\\r\\n' | openssl s_client -connect 127.0.0.1:8935 -quiet 2>/dev/null | grep -q '200 OK'"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 10s
+
+  runner:
+    build:
+      context: ..
+      dockerfile: docker/runner.Dockerfile
+    image: ltx-desktop-runner
+    container_name: ltx-runner
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    runtime: nvidia
+    environment:
+      - ORCHESTRATOR_URL=https://orchestrator:8935
+      - ORCHESTRATOR_SECRET=abcdef
+      - RUNNER_URL=http://runner:8991
+      - MODEL_CHECKPOINT=${MODEL_CHECKPOINT:-/models/checkpoint}
+      - TEXT_ENCODER_ROOT=${TEXT_ENCODER_ROOT:-/models/gemma}
+      - UPSCALER_PATH=${UPSCALER_PATH:-}
+      - GPU_DEVICE=${GPU_DEVICE:-0}
+      - PORT=8991
+      - PRICE=${PRICE:-0.5}
+      - PRICE_UNIT=fixed
+      - LORA_CACHE_DIR=${LORA_CACHE_DIR:-/models/loras}
+      - LORA_CACHE_SIZE_GB=${LORA_CACHE_SIZE_GB:-2.0}
+      - LORA_CATALOG_SOURCE=${LORA_CATALOG_SOURCE:-}
+      - LORA_HF_TOKEN=${LORA_HF_TOKEN:-}
+    ports:
+      - "8991:8991"
+    volumes:
+      - ${MODELS_DIR:-/models}:/models
+    networks:
+      - ltx
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8991/ltx-desktop/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+
+networks:
+  ltx:
+    driver: bridge
