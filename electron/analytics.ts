@@ -11,7 +11,7 @@ const RETRY_DELAYS_MS = [1000, 3000, 10000]
 export function getAnalyticsState(): { analyticsEnabled: boolean; installationId: string } {
   const state = readAppState()
   return {
-    analyticsEnabled: state.analyticsEnabled !== false,
+    analyticsEnabled: state.analyticsEnabled === true,
     installationId: state.installationId ?? '',
   }
 }
@@ -65,7 +65,7 @@ export async function sendAnalyticsEvent(
     if (isDev) return;
 
     const state = readAppState()
-    if (state.analyticsEnabled === false) return
+    if (state.analyticsEnabled !== true) return
 
     // Generate installationId on first send
     if (!state.installationId) {
