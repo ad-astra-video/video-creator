@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import json
 import logging
 import ssl
 import uuid
@@ -28,6 +29,51 @@ class RunnerInfo:
         self.gpu: Any = raw.get("gpu", {})
         self.price_info: Any = raw.get("price_info")
         self.status: str = str(raw.get("status", "ready"))
+        self.label: str = str(raw.get("label", ""))
+        # Capability list the runner advertises (live-runner /info or metadata).
+        caps = raw.get("capabilities", [])
+        if isinstance(caps, str):
+            try:
+                caps = json.loads(caps)
+            except Exception:
+                caps = []
+        caps_list: list[Any] = cast(list[Any], caps if isinstance(caps, list) else [])
+        self.capabilities: list[str] = [str(c) for c in caps_list]
+        # Heartbeat metadata (warm model + worker up/down). The gateway sends it
+        # as a JSON string; the orchestrator may pass it through as a dict.
+        self.metadata: dict[str, Any] = self._parse_metadata(raw.get("metadata"))
+
+    @staticmethod
+    def _parse_metadata(value: Any) -> dict[str, Any]:
+        if isinstance(value, dict):
+            return dict(cast(dict[str, Any], value))
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, dict):
+                    return dict(cast(dict[str, Any], parsed))
+                return {}
+            except Exception:
+                return {}
+        return {}
+
+    @property
+    def warm_model(self) -> str | None:
+        """The model family currently resident on this runner (from heartbeat)."""
+        wm = self.metadata.get("warm_model")
+        return str(wm) if wm else None
+
+    @property
+    def ltx_worker_up(self) -> bool:
+        return bool(self.metadata.get("ltx_worker_up", False))
+
+    @property
+    def idv2v_worker_up(self) -> bool:
+        return bool(self.metadata.get("idv2v_worker_up", False))
+
+    def has_capability(self, capability: str) -> bool:
+        """True if this runner advertises the given capability."""
+        return capability in self.capabilities
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -182,6 +228,63 @@ class LivepeerClient:
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Discovery recovery failed: %s", exc)
             runner = self.get_runner(selected_id, excluded_ids)
+        return runner
+
+    def get_runner_for(
+        self,
+        selected_id: str,
+        excluded_ids: list[str],
+        capability: str = "restyle",
+    ) -> RunnerInfo | None:
+        """Pick a runner for a capability, preferring one whose model is warm.
+
+        Selection order:
+          1. explicit ``selected_id`` when it advertises the capability;
+          2. the first non-excluded capability-matching runner whose heartbeat
+             metadata reports its model warm;
+          3. the first non-excluded capability-matching runner (fall-through).
+
+        Falls back to the legacy ``get_runner`` spot (any runner) when no
+        capability-matching runner exists, so other task types keep working.
+        """
+        if capability:
+            def matches(r: RunnerInfo) -> bool:
+                return r.has_capability(capability) and r.runner_id not in excluded_ids
+
+            if selected_id and selected_id in self._runners:
+                r = self._runners[selected_id]
+                if r.has_capability(capability):
+                    return r
+
+            # Prefer warm-model capable runner (restyle warms idv2v; others warm ltx).
+            want_warm = "idv2v" if capability == "restyle" else "ltx"
+            for r in self._runners.values():
+                if matches(r) and r.warm_model == want_warm:
+                    return r
+            # Fall-through: any capable runner.
+            for r in self._runners.values():
+                if matches(r):
+                    return r
+            # No capability match — fall back to any non-excluded runner.
+            return self.get_runner(selected_id, excluded_ids)
+
+        return self.get_runner(selected_id, excluded_ids)
+
+    def get_runner_for_with_recovery(
+        self,
+        selected_id: str,
+        excluded_ids: list[str],
+        capability: str = "restyle",
+    ) -> RunnerInfo | None:
+        """Like ``get_runner_for``, retrying one discovery pass when none is cached."""
+        runner = self.get_runner_for(selected_id, excluded_ids, capability)
+        if runner is None and self.discovery_url.strip():
+            logger.info("No cached %s runner — running one discovery recovery pass", capability)
+            try:
+                asyncio.run(self.discover())
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Discovery recovery failed: %s", exc)
+            runner = self.get_runner_for(selected_id, excluded_ids, capability)
         return runner
 
     async def call(
