@@ -1,4 +1,4 @@
-"""GPU inference engine wrapping LTX-Video DistilledPipeline.
+"""Video-Creator GPU inference engine (LTX-2.3 + ID-V2V model families).
 
 All generation endpoints accept base64-encoded input and return base64-encoded
 output files (mp4 for video, png for image). This matches the contract expected
@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any, cast
 import torch
 
 if TYPE_CHECKING:
-    from runner.gpu_profile import GPUProfile
+    from runner.ltx.gpu_profile import GPUProfile
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ def _gemma_generate(
         return cast(str, encoder.processor.tokenizer.decode(generated_ids, skip_special_tokens=True))
 
 
-class LTXInferenceEngine:
+class VideoCreatorInferenceEngine:
     """Wraps DistilledPipeline for standalone runner inference.
 
     Supports: t2v, i2v, extend, retake, image generation.
@@ -215,7 +215,7 @@ class LTXInferenceEngine:
         """Clamp a requested resolution down to what the GPU can handle."""
         if self._profile is None:
             return resolution
-        from runner.gpu_profile import clamp_resolution as _clamp
+        from runner.ltx.gpu_profile import clamp_resolution as _clamp
         return _clamp(self._profile, resolution)
 
     @staticmethod

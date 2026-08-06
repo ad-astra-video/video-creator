@@ -1,11 +1,13 @@
-# LTX Desktop Runner
+# Video-Creator Runner — LTX Worker
 
-A self-contained GPU inference service for LTX-Desktop that registers with
-Livepeer Orchestrators and serves inference over HTTP. It is built and shipped
+The LTX worker: a self-contained GPU inference service for Video-Creator that
+serves LTX-2.3 generation over HTTP. In the current three-container architecture
+it is driven by the `live-runner` edge (which registers with Livepeer
+Orchestrators); see the plan for the full topology. It is built and shipped
 as a Docker image that **node operators launch** — there are no host-side deploy
 scripts (models and env vars are provided at `docker run` time).
 
-This runner lives inside the LTX-Desktop repo (`runner/`) and reuses the same
+This worker lives inside the Video-Creator repo (`runner/ltx/`) and reuses the same
 LTX-2 / diffusers pip pins the desktop backend uses
 (`backend/requirements-remote.txt`).
 
@@ -30,8 +32,8 @@ The mode is picked automatically from detected VRAM (mirroring LTX-Desktop's
 ## Architecture
 
 ```
-LTX-Desktop (Electron client)
-  └── requests → Livepeer Orchestrator → Runner (this service, in Docker)
+Video-Creator (Electron client)
+  └── requests → Livepeer Orchestrator → live-runner → this LTX worker (Docker)
 ```
 
 The runner:
@@ -44,10 +46,10 @@ The runner:
 
 ```bash
 # From the LTX-Desktop repo root:
-docker build -f docker/runner.Dockerfile -t ltx-desktop-runner .
+docker build -f docker/ltx.Dockerfile -t video-creator-ltx-worker .
 
 # Launch against an orchestrator. Models are bind-mounted at /models.
-docker run --gpus all -d -p 8991:8991 \
+docker run --gpus all -d -p 8991:8991  # (worker; normally behind live-runner) \
   -e ORCHESTRATOR_URL=https://orchestrator:8935 \
   -e ORCHESTRATOR_SECRET=your-secret \
   -e RUNNER_URL=http://<host-routable-ip>:8991 \
@@ -55,7 +57,7 @@ docker run --gpus all -d -p 8991:8991 \
   -e TEXT_ENCODER_ROOT=/models/gemma \
   -e UPSCALER_PATH=/models/upsampler \
   --mount type=bind,source=/path/to/models,target=/models \
-  ltx-desktop-runner
+  video-creator-ltx-worker
 ```
 
 Or with `docker compose`:

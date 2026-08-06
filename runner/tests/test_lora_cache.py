@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest  # noqa: E402
 
-from runner import loracache  # noqa: E402
+from runner.ltx import loracache  # noqa: E402
 
 _MIB = 1024 * 1024
 

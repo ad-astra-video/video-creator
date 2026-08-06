@@ -19,8 +19,8 @@ from livepeer_gateway.live_runner import (
     register_runner,
 )
 
-from runner import enhance_forward
-from runner.config import (
+from runner.ltx import enhance_forward
+from runner.ltx.config import (
     ENHANCE_FORWARD_API_KEY,
     ENHANCE_FORWARD_MODEL,
     ENHANCE_FORWARD_TIMEOUT,
@@ -43,9 +43,9 @@ from runner.config import (
     UPSCALER_PATH,
     WARMUP,
 )
-from runner.gpu_profile import build_profile
-from runner.inference import LTXInferenceEngine
-from runner.loracache import LoraCache
+from runner.ltx.gpu_profile import build_profile
+from runner.ltx.inference import VideoCreatorInferenceEngine
+from runner.ltx.loracache import LoraCache
 
 logger = logging.getLogger(__name__)
 APP_ID = "video-creator"
@@ -64,7 +64,7 @@ _ENHANCE_I2V_DEFAULT = ENHANCE_I2V_SYSTEM_PROMPT or enhance_forward.DEFAULT_I2V_
 _MAX_BODY_BYTES = int(os.environ.get("MAX_BODY_BYTES", str(3000000000)))
 
 # Global state
-engine: LTXInferenceEngine | None = None
+engine: VideoCreatorInferenceEngine | None = None
 gpu_profile = None
 registration = None
 ready = False
@@ -698,7 +698,7 @@ async def on_startup(_app: web.Application) -> None:
     # (ENHANCE_GPU_DEVICE); default to the video pipeline's GPU when unset.
     device = torch.device(f"cuda:{GPU_DEVICE}")
     enhance_device = torch.device(f"cuda:{ENHANCE_GPU_DEVICE}") if ENHANCE_GPU_DEVICE else device
-    engine = LTXInferenceEngine(MODEL_CHECKPOINT, TEXT_ENCODER_ROOT, UPSCALER_PATH, device,
+    engine = VideoCreatorInferenceEngine(MODEL_CHECKPOINT, TEXT_ENCODER_ROOT, UPSCALER_PATH, device,
                                 profile=gpu_profile, enhance_device=enhance_device)
     logger.info("Inference engine ready on %s (mode=%s, max_res=%s)",
                 device, gpu_profile.mode, gpu_profile.max_resolution)

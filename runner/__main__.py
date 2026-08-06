@@ -1,4 +1,4 @@
-"""Runner entry point."""
-from runner.server import main
+"""Runner entry point (LTX worker)."""
+from runner.ltx.server import main
 
 main()

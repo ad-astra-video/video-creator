@@ -123,14 +123,14 @@ class LoraCache:
         if cache_dir is not None and size_gb is not None and hf_token is not None:
             LORA_CACHE_DIR, LORA_CACHE_SIZE_GB, LORA_HF_TOKEN = cache_dir, size_gb, hf_token
         else:
-            from runner.config import (
+            from runner.ltx.config import (
                 LORA_CACHE_DIR,
                 LORA_CACHE_SIZE_GB,
                 LORA_HF_TOKEN,
             )
         if catalog is None:
             if not source:
-                from runner.config import LORA_CATALOG_SOURCE
+                from runner.ltx.config import LORA_CATALOG_SOURCE
                 source = LORA_CATALOG_SOURCE
             self._catalog = load_catalog(source)
         else:
