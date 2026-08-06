@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
+from pathlib import Path
 
 from state.app_settings import AppSettings
 from handlers import (
@@ -50,6 +51,7 @@ from services.interfaces import (
 from services.lora_catalog import LoraCatalogProvider
 from services.platform_client import HttpPlatformClient, PlatformClient
 from services.prompt_enhancer_pipeline.gemini_prompt_enhancer_pipeline import GeminiPromptEnhancerPipeline
+from services.idv2v_pipeline.local_idv2v_pipeline import LocalIdV2vPipeline
 from state.app_state_types import AppState, TextEncoderState
 
 
@@ -242,6 +244,8 @@ class AppHandler:
             lock=self._lock,
             config=config,
             generation_handler=self.generation,
+            gpu_info=gpu_info,
+            local_idv2v=LocalIdV2vPipeline(repo_root=_repo_root()),
         )
 
         self.extend = ExtendHandler(
@@ -285,6 +289,12 @@ class AppHandler:
         """Load persisted state from disk (settings, HF auth token, etc.)."""
         self.settings.load_settings(default_settings)
         self.hf_auth.load_token()
+
+
+def _repo_root() -> Path:
+    """Absolute path to the video-creator repo root (parent of backend/)."""
+    return Path(__file__).resolve().parents[1]
+
 
 
 @dataclass

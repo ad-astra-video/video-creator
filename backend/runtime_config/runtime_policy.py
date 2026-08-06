@@ -100,6 +100,32 @@ def decide_local_generation_mode(
     return "unsupported"
 
 
+LocalIdV2vMode = Literal["available", "unsupported"]
+
+# id-v2v loads int8-quantized DiT + VACE (~14 GB resident) with T5/VAE/CLIP
+# CPU-offloaded; it needs a real NVIDIA GPU (CUDA) with >= ~16 GB VRAM. Tune
+# from a live measurement on the 5090.
+IDV2V_LOCAL_VRAM_FLOOR_GB = 16
+
+
+def decide_local_idv2v_mode(
+    cuda_available: bool,
+    vram_gb: int | None,
+) -> LocalIdV2vMode:
+    """Decide whether the desktop can serve Restyle through its own local GPU.
+
+    Mirrors ``decide_local_generation_mode`` for the id-v2v model family: a
+    compatible card (CUDA + enough discrete VRAM) can run it in-process;
+    otherwise the caller must fall back to the remote Livepeer restyle route
+    (live-runner -> idv2v-worker).
+    """
+    if not cuda_available:
+        return "unsupported"
+    if vram_gb is None or vram_gb < IDV2V_LOCAL_VRAM_FLOOR_GB:
+        return "unsupported"
+    return "available"
+
+
 def streaming_prefetch_count_for_mode(mode: LocalGenerationMode) -> int | None:
     """Return the streaming_prefetch_count to pass to a local pipeline.
 
