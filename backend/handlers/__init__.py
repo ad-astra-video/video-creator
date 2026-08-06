@@ -12,6 +12,7 @@ from handlers.lora_catalog_handler import LoraCatalogHandler
 from handlers.prompt_enhancement_handler import PromptEnhancementHandler
 from handlers.suggest_gap_prompt_handler import SuggestGapPromptHandler
 from handlers.retake_handler import RetakeHandler
+from handlers.restyle_handler import RestyleHandler
 from handlers.extend_handler import ExtendHandler
 from handlers.runtime_policy_handler import RuntimePolicyHandler
 from handlers.settings_handler import SettingsHandler
@@ -31,6 +32,7 @@ __all__ = [
     "HealthHandler",
     "SuggestGapPromptHandler",
     "RetakeHandler",
+    "RestyleHandler",
     "ExtendHandler",
     "RuntimePolicyHandler",
     "IcLoraHandler",

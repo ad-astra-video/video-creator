@@ -193,6 +193,18 @@ class RetakeCancelledResponse(BaseModel):
 RetakeResponse: TypeAlias = RetakeVideoResponse | RetakePayloadResponse | RetakeCancelledResponse
 
 
+class RestyleVideoResponse(BaseModel):
+    status: Literal["complete"] = "complete"
+    video_path: str
+
+
+class RestyleCancelledResponse(BaseModel):
+    status: Literal["cancelled"] = "cancelled"
+
+
+RestyleResponse: TypeAlias = RestyleVideoResponse | RestyleCancelledResponse
+
+
 class IcLoraExtractResponse(BaseModel):
     conditioning: str
     original: str
@@ -579,6 +591,20 @@ class RetakeRequest(BaseModel):
     prompt: str = ""
     mode: RetakeMode = "replace_audio_and_video"
     resolution: TargetResolution | None = None
+
+
+class RestyleRequest(BaseModel):
+    """Identity-preserving video restylization: source video + stylized first
+    frame image + prompt -> restyled video (served remotely, id-v2v)."""
+
+    model_config = ConfigDict(strict=True)
+
+    video_path: str
+    stylized_image_path: str
+    prompt: str = ""
+    max_frames: int = 81
+    inference_steps: int = 30
+    cfg_scale: float = 5.0
 
 
 ExtendMode: TypeAlias = Literal["start", "end"]

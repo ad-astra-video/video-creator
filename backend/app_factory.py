@@ -26,6 +26,7 @@ from _routes.models import router as models_router
 from _routes.suggest_gap_prompt import router as suggest_gap_prompt_router
 from _routes.retake import router as retake_router
 from _routes.extend import router as extend_router
+from _routes.restyle import router as restyle_router
 from _routes.runtime_policy import router as runtime_policy_router
 from _routes.settings import router as settings_router
 from _routes.providers import router as providers_router
@@ -167,6 +168,7 @@ def create_app(
     app.include_router(suggest_gap_prompt_router)
     app.include_router(retake_router)
     app.include_router(extend_router)
+    app.include_router(restyle_router)
     app.include_router(ic_lora_router)
     app.include_router(lora_catalog_router)
     app.include_router(prompt_enhancement_router)

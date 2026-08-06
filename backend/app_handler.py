@@ -19,6 +19,7 @@ from handlers import (
     PromptEnhancementHandler,
     SuggestGapPromptHandler,
     RetakeHandler,
+    RestyleHandler,
     ExtendHandler,
     RuntimePolicyHandler,
     SettingsHandler,
@@ -234,6 +235,13 @@ class AppHandler:
             generation_handler=self.generation,
             pipelines_handler=self.pipelines,
             text_handler=self.text,
+        )
+
+        self.restyle = RestyleHandler(
+            state=self.state,
+            lock=self._lock,
+            config=config,
+            generation_handler=self.generation,
         )
 
         self.extend = ExtendHandler(
