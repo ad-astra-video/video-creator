@@ -12,12 +12,18 @@ FROM nvidia/cuda:12.8.0-cudnn-devel-ubuntu24.04
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1
 
+# Python 3.10 via deadsnakes — Ubuntu 24.04 base doesn't ship 3.10 in the main
+# repos, but the diffsynth fork's flash_attn dep only ships cp310 wheels, so we
+# match the reference build's Python.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.12 python3.12-venv python3.12-dev \
-    git curl ca-certificates ffmpeg build-essential \
+    software-properties-common ca-certificates gnupg && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 python3.10-venv python3.10-dev \
+    git curl ffmpeg build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python3.12 -m venv /opt/venv
+RUN python3.10 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Worker deps: aiohttp, torch/CUDA, transformers, diffusers, xfuser, torchao int8, etc.
@@ -32,10 +38,14 @@ RUN pip install --no-cache-dir \
 # reference repo, NOT pip. Clone the pinned commit and install from source.
 ARG IDV2V_REF_REPO=https://github.com/Eyeline-Labs/ID-V2V
 ARG IDV2V_REF_COMMIT=HEAD
-RUN git clone --depth 1 "${IDV2V_REF_REPO}" /opt/idv2v-ref \
+# The diffsynth fork's setup.py imports pkg_resources at build time; the isolated
+# pip build env lacks it, so install setuptools into the main venv and build the
+# source packages with --no-build-isolation so they see the base env.
+RUN pip install --no-cache-dir "setuptools<81" \
+    && git clone --depth 1 "${IDV2V_REF_REPO}" /opt/idv2v-ref \
     && cd /opt/idv2v-ref \
     && (test "${IDV2V_REF_COMMIT}" = "HEAD" || git checkout "${IDV2V_REF_COMMIT}" || true) \
-    && pip install --no-cache-dir ./diffsynth_studio . \
+    && pip install --no-cache-dir --no-build-isolation ./diffsynth_studio . \
     && rm -rf /opt/idv2v-ref/.git
 
 # Worker source
