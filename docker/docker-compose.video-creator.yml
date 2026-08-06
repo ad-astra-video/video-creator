@@ -14,9 +14,14 @@
 # deployment, export a fixed token once and pass it to all three:
 #   export WORKER_TOKEN="$(openssl rand -hex 16)"
 #
-# Usage (from the video-creator repo root):
+# Images: pulled from Docker Hub `adastravideo/video-creator`, one per runner
+# (tag = live-runner / ltx-worker / idv2v-worker). No build-from-source here —
+# that happens in CI / on a build host, so the 5090 box just pulls.
+#
+# Usage (from the video-creator repo root, on the GPU box):
+#   docker compose -f docker/docker-compose.video-creator.yml pull
 #   MODELS_DIR=/home/brad/models WORKER_TOKEN=$(openssl rand -hex 16) \
-#     docker compose -f docker/docker-compose.video-creator.yml up --build
+#     docker compose -f docker/docker-compose.video-creator.yml up
 #
 # Optional local orchestrator (go-livepeer offchain) for testing discovery /
 # heartbeats. Point ORCHESTRATOR_URL at your real orchestrator for production.
@@ -51,10 +56,7 @@ services:
       start_period: 10s
 
   live-runner:
-    build:
-      context: ..
-      dockerfile: docker/live-runner.Dockerfile
-    image: video-creator-live-runner
+    image: adastravideo/video-creator:live-runner
     container_name: video-creator-live-runner
     depends_on:
       orchestrator:
@@ -86,10 +88,7 @@ services:
       start_period: 20s
 
   ltx-worker:
-    build:
-      context: ..
-      dockerfile: docker/ltx-worker.Dockerfile
-    image: video-creator-ltx-worker
+    image: adastravideo/video-creator:ltx-worker
     container_name: video-creator-ltx-worker
     depends_on:
       live-runner:
@@ -125,10 +124,7 @@ services:
       start_period: 120s
 
   idv2v-worker:
-    build:
-      context: ..
-      dockerfile: docker/idv2v-worker.Dockerfile
-    image: video-creator-idv2v-worker
+    image: adastravideo/video-creator:idv2v-worker
     container_name: video-creator-idv2v-worker
     depends_on:
       live-runner:
