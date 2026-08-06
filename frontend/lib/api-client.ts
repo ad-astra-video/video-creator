@@ -481,6 +481,8 @@ export class ApiClient {
 
   static retake = makeEndpointClient('/api/retake', 'post')
 
+  static restyle = makeEndpointClient('/api/restyle', 'post')
+
   static extend = makeEndpointClient('/api/extend', 'post')
 
   static startHuggingFaceLogin = makeEndpointClient('/api/auth/huggingface/login', 'post')

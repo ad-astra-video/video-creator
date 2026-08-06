@@ -216,6 +216,50 @@
             ],
             "title": "Modelsdir"
           },
+          "platformApiKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platformapikey"
+          },
+          "platformBaseUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platformbaseurl"
+          },
+          "platformRecoveryEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platformrecoveryemail"
+          },
+          "platformUserId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platformuserid"
+          },
           "promptCacheSize": {
             "anyOf": [
               {
@@ -3361,6 +3405,183 @@
         "title": "OutpaintPads",
         "type": "object"
       },
+      "PlatformBalanceResponse": {
+        "description": "Platform credit balance/access snapshot (no secrets).\n\n``has_access`` reflects the platform's ``hasAccess`` flag; the USD micros fields\nare integers (the raw platform payload strings are parsed by the handler). When the\nplatform is not configured the handler returns zeros with ``configured=False``.",
+        "properties": {
+          "balanceUsdMicros": {
+            "title": "Balanceusdmicros",
+            "type": "integer"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "consumedUsdMicros": {
+            "title": "Consumedusdmicros",
+            "type": "integer"
+          },
+          "hasAccess": {
+            "title": "Hasaccess",
+            "type": "boolean"
+          },
+          "lifetimeGrantedUsdMicros": {
+            "title": "Lifetimegrantedusdmicros",
+            "type": "integer"
+          },
+          "remainingUsdMicros": {
+            "title": "Remainingusdmicros",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hasAccess",
+          "balanceUsdMicros",
+          "remainingUsdMicros",
+          "consumedUsdMicros",
+          "lifetimeGrantedUsdMicros",
+          "configured"
+        ],
+        "title": "PlatformBalanceResponse",
+        "type": "object"
+      },
+      "PlatformCheckoutRequest": {
+        "description": "Request to start a credit top-up checkout. ``tier`` is credits in cents.",
+        "properties": {
+          "tier": {
+            "title": "Tier",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tier"
+        ],
+        "title": "PlatformCheckoutRequest",
+        "type": "object"
+      },
+      "PlatformCheckoutResponse": {
+        "description": "Hosted checkout URL, or an empty ``url`` with ``configured=False``.",
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "configured"
+        ],
+        "title": "PlatformCheckoutResponse",
+        "type": "object"
+      },
+      "PlatformLinkEmailRequest": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "PlatformLinkEmailRequest",
+        "type": "object"
+      },
+      "PlatformLinkEmailResponse": {
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "configured"
+        ],
+        "title": "PlatformLinkEmailResponse",
+        "type": "object"
+      },
+      "PlatformRecoverConfirmRequest": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ],
+        "title": "PlatformRecoverConfirmRequest",
+        "type": "object"
+      },
+      "PlatformRecoverConfirmResponse": {
+        "description": "Outcome of confirming a recovery code (key rotated on success).",
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "hasApiKey": {
+            "title": "Hasapikey",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "hasApiKey",
+          "configured"
+        ],
+        "title": "PlatformRecoverConfirmResponse",
+        "type": "object"
+      },
+      "PlatformRecoverRequest": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "PlatformRecoverRequest",
+        "type": "object"
+      },
+      "PlatformStatusResponse": {
+        "description": "Per-install platform credits provisioning status (no secrets).\n\nUses camelCase JSON aliases (like the rest of the API) while keeping the\nPython field names snake_case.",
+        "properties": {
+          "baseUrl": {
+            "title": "Baseurl",
+            "type": "string"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "hasApiKey": {
+            "title": "Hasapikey",
+            "type": "boolean"
+          },
+          "userId": {
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "configured",
+          "hasApiKey",
+          "baseUrl"
+        ],
+        "title": "PlatformStatusResponse",
+        "type": "object"
+      },
       "PreprocessingStep": {
         "properties": {
           "params": {
@@ -3420,6 +3641,76 @@
           "template"
         ],
         "title": "PromptTemplateSpec",
+        "type": "object"
+      },
+      "RestyleCancelledResponse": {
+        "properties": {
+          "status": {
+            "const": "cancelled",
+            "default": "cancelled",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "RestyleCancelledResponse",
+        "type": "object"
+      },
+      "RestyleRequest": {
+        "description": "Identity-preserving video restylization: source video + stylized first\nframe image + prompt -> restyled video (served remotely, id-v2v).",
+        "properties": {
+          "cfg_scale": {
+            "default": 5.0,
+            "title": "Cfg Scale",
+            "type": "number"
+          },
+          "inference_steps": {
+            "default": 30,
+            "title": "Inference Steps",
+            "type": "integer"
+          },
+          "max_frames": {
+            "default": 81,
+            "title": "Max Frames",
+            "type": "integer"
+          },
+          "prompt": {
+            "default": "",
+            "title": "Prompt",
+            "type": "string"
+          },
+          "stylized_image_path": {
+            "title": "Stylized Image Path",
+            "type": "string"
+          },
+          "video_path": {
+            "title": "Video Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "video_path",
+          "stylized_image_path"
+        ],
+        "title": "RestyleRequest",
+        "type": "object"
+      },
+      "RestyleVideoResponse": {
+        "properties": {
+          "status": {
+            "const": "complete",
+            "default": "complete",
+            "title": "Status",
+            "type": "string"
+          },
+          "video_path": {
+            "title": "Video Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "video_path"
+        ],
+        "title": "RestyleVideoResponse",
         "type": "object"
       },
       "RetakeCancelledResponse": {
@@ -3613,6 +3904,16 @@
             "title": "Hasltxapikey",
             "type": "boolean"
           },
+          "hasPlatformApiKey": {
+            "default": false,
+            "title": "Hasplatformapikey",
+            "type": "boolean"
+          },
+          "hasPlatformBaseUrl": {
+            "default": false,
+            "title": "Hasplatformbaseurl",
+            "type": "boolean"
+          },
           "livepeerDiscoveryUrl": {
             "default": "",
             "title": "Livepeerdiscoveryurl",
@@ -3658,6 +3959,21 @@
           "modelsDir": {
             "default": "",
             "title": "Modelsdir",
+            "type": "string"
+          },
+          "platformBaseUrl": {
+            "default": "",
+            "title": "Platformbaseurl",
+            "type": "string"
+          },
+          "platformRecoveryEmail": {
+            "default": "",
+            "title": "Platformrecoveryemail",
+            "type": "string"
+          },
+          "platformUserId": {
+            "default": "",
+            "title": "Platformuserid",
             "type": "string"
           },
           "promptCacheSize": {
@@ -5580,6 +5896,292 @@
         ]
       }
     },
+    "/api/platform/balance": {
+      "get": {
+        "operationId": "route_platform_balance_api_platform_balance_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformBalanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Route Platform Balance",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/platform/checkout": {
+      "post": {
+        "operationId": "route_platform_checkout_api_platform_checkout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformCheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformCheckoutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Route Platform Checkout",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/platform/link-email": {
+      "post": {
+        "operationId": "route_platform_link_email_api_platform_link_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformLinkEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformLinkEmailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Route Platform Link Email",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/platform/recover/confirm": {
+      "post": {
+        "operationId": "route_platform_recover_confirm_api_platform_recover_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformRecoverConfirmRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformRecoverConfirmResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Route Platform Recover Confirm",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/platform/recover/request": {
+      "post": {
+        "operationId": "route_platform_recover_request_api_platform_recover_request_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformRecoverRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Route Platform Recover Request",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/platform/status": {
+      "get": {
+        "operationId": "route_platform_status_api_platform_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Route Platform Status",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
     "/api/providers": {
       "get": {
         "description": "List discovered providers with selection/exclusion state.",
@@ -5773,6 +6375,65 @@
         "summary": "Select Provider",
         "tags": [
           "providers"
+        ]
+      }
+    },
+    "/api/restyle": {
+      "post": {
+        "operationId": "route_restyle_api_restyle_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestyleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/RestyleVideoResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RestyleCancelledResponse"
+                    }
+                  ],
+                  "title": "Response Route Restyle Api Restyle Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Route Restyle",
+        "tags": [
+          "restyle"
         ]
       }
     },

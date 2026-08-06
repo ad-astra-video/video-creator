@@ -604,6 +604,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/platform/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Route Platform Balance */
+        get: operations["route_platform_balance_api_platform_balance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Route Platform Checkout */
+        post: operations["route_platform_checkout_api_platform_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/link-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Route Platform Link Email */
+        post: operations["route_platform_link_email_api_platform_link_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/recover/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Route Platform Recover Confirm */
+        post: operations["route_platform_recover_confirm_api_platform_recover_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/recover/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Route Platform Recover Request */
+        post: operations["route_platform_recover_request_api_platform_recover_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platform/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Route Platform Status */
+        get: operations["route_platform_status_api_platform_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/providers": {
         parameters: {
             query?: never;
@@ -678,6 +780,23 @@ export interface paths {
          * @description Select a provider for inference.
          */
         post: operations["select_provider_api_providers_select_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/restyle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Route Restyle */
+        post: operations["route_restyle_api_restyle_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -830,6 +949,14 @@ export interface components {
             ltxApiKey?: string | null;
             /** Modelsdir */
             modelsDir?: string | null;
+            /** Platformapikey */
+            platformApiKey?: string | null;
+            /** Platformbaseurl */
+            platformBaseUrl?: string | null;
+            /** Platformrecoveryemail */
+            platformRecoveryEmail?: string | null;
+            /** Platformuserid */
+            platformUserId?: string | null;
             /** Promptcachesize */
             promptCacheSize?: number | null;
             /** Promptenhancerenabledi2V */
@@ -1954,6 +2081,95 @@ export interface components {
             /** Top */
             top: number;
         };
+        /**
+         * PlatformBalanceResponse
+         * @description Platform credit balance/access snapshot (no secrets).
+         *
+         *     ``has_access`` reflects the platform's ``hasAccess`` flag; the USD micros fields
+         *     are integers (the raw platform payload strings are parsed by the handler). When the
+         *     platform is not configured the handler returns zeros with ``configured=False``.
+         */
+        PlatformBalanceResponse: {
+            /** Balanceusdmicros */
+            balanceUsdMicros: number;
+            /** Configured */
+            configured: boolean;
+            /** Consumedusdmicros */
+            consumedUsdMicros: number;
+            /** Hasaccess */
+            hasAccess: boolean;
+            /** Lifetimegrantedusdmicros */
+            lifetimeGrantedUsdMicros: number;
+            /** Remainingusdmicros */
+            remainingUsdMicros: number;
+        };
+        /**
+         * PlatformCheckoutRequest
+         * @description Request to start a credit top-up checkout. ``tier`` is credits in cents.
+         */
+        PlatformCheckoutRequest: {
+            /** Tier */
+            tier: number;
+        };
+        /**
+         * PlatformCheckoutResponse
+         * @description Hosted checkout URL, or an empty ``url`` with ``configured=False``.
+         */
+        PlatformCheckoutResponse: {
+            /** Configured */
+            configured: boolean;
+            /** Url */
+            url: string;
+        };
+        /** PlatformLinkEmailRequest */
+        PlatformLinkEmailRequest: {
+            /** Email */
+            email: string;
+        };
+        /** PlatformLinkEmailResponse */
+        PlatformLinkEmailResponse: {
+            /** Configured */
+            configured: boolean;
+        };
+        /** PlatformRecoverConfirmRequest */
+        PlatformRecoverConfirmRequest: {
+            /** Code */
+            code: string;
+            /** Email */
+            email: string;
+        };
+        /**
+         * PlatformRecoverConfirmResponse
+         * @description Outcome of confirming a recovery code (key rotated on success).
+         */
+        PlatformRecoverConfirmResponse: {
+            /** Configured */
+            configured: boolean;
+            /** Hasapikey */
+            hasApiKey: boolean;
+        };
+        /** PlatformRecoverRequest */
+        PlatformRecoverRequest: {
+            /** Email */
+            email: string;
+        };
+        /**
+         * PlatformStatusResponse
+         * @description Per-install platform credits provisioning status (no secrets).
+         *
+         *     Uses camelCase JSON aliases (like the rest of the API) while keeping the
+         *     Python field names snake_case.
+         */
+        PlatformStatusResponse: {
+            /** Baseurl */
+            baseUrl: string;
+            /** Configured */
+            configured: boolean;
+            /** Hasapikey */
+            hasApiKey: boolean;
+            /** Userid */
+            userId: string;
+        };
         /** PreprocessingStep */
         PreprocessingStep: {
             /** Params */
@@ -1983,6 +2199,57 @@ export interface components {
             };
             /** Template */
             template: string;
+        };
+        /** RestyleCancelledResponse */
+        RestyleCancelledResponse: {
+            /**
+             * Status
+             * @default cancelled
+             * @constant
+             */
+            status: "cancelled";
+        };
+        /**
+         * RestyleRequest
+         * @description Identity-preserving video restylization: source video + stylized first
+         *     frame image + prompt -> restyled video (served remotely, id-v2v).
+         */
+        RestyleRequest: {
+            /**
+             * Cfg Scale
+             * @default 5
+             */
+            cfg_scale: number;
+            /**
+             * Inference Steps
+             * @default 30
+             */
+            inference_steps: number;
+            /**
+             * Max Frames
+             * @default 81
+             */
+            max_frames: number;
+            /**
+             * Prompt
+             * @default
+             */
+            prompt: string;
+            /** Stylized Image Path */
+            stylized_image_path: string;
+            /** Video Path */
+            video_path: string;
+        };
+        /** RestyleVideoResponse */
+        RestyleVideoResponse: {
+            /**
+             * Status
+             * @default complete
+             * @constant
+             */
+            status: "complete";
+            /** Video Path */
+            video_path: string;
         };
         /** RetakeCancelledResponse */
         RetakeCancelledResponse: {
@@ -2088,6 +2355,16 @@ export interface components {
              */
             hasLtxApiKey: boolean;
             /**
+             * Hasplatformapikey
+             * @default false
+             */
+            hasPlatformApiKey: boolean;
+            /**
+             * Hasplatformbaseurl
+             * @default false
+             */
+            hasPlatformBaseUrl: boolean;
+            /**
              * Livepeerdiscoveryurl
              * @default
              */
@@ -2129,6 +2406,21 @@ export interface components {
              * @default
              */
             modelsDir: string;
+            /**
+             * Platformbaseurl
+             * @default
+             */
+            platformBaseUrl: string;
+            /**
+             * Platformrecoveryemail
+             * @default
+             */
+            platformRecoveryEmail: string;
+            /**
+             * Platformuserid
+             * @default
+             */
+            platformUserId: string;
             /**
              * Promptcachesize
              * @default 100
@@ -3617,6 +3909,250 @@ export interface operations {
             };
         };
     };
+    route_platform_balance_api_platform_balance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformBalanceResponse"];
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    route_platform_checkout_api_platform_checkout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformCheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformCheckoutResponse"];
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    route_platform_link_email_api_platform_link_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformLinkEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformLinkEmailResponse"];
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    route_platform_recover_confirm_api_platform_recover_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformRecoverConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformRecoverConfirmResponse"];
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    route_platform_recover_request_api_platform_recover_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformRecoverRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    route_platform_status_api_platform_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformStatusResponse"];
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
     get_providers_api_providers_get: {
         parameters: {
             query?: never;
@@ -3763,6 +4299,48 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    route_restyle_api_restyle_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestyleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestyleVideoResponse"] | components["schemas"]["RestyleCancelledResponse"];
                 };
             };
             /** @description Client Error */

@@ -13,6 +13,7 @@ import { setActiveGenerationOwner, hasValidBaselineId } from '../lib/generation-
 import { withGenerationActive } from '../lib/generation-active'
 import { useVideoGenerationModelSpecs } from '../hooks/use-video-generation-model-specs'
 import { createLocalGenerationError, type GenerationError } from '../lib/generation-errors'
+import { useRestyle } from '../hooks/use-restyle'
 import { useRetake } from '../hooks/use-retake'
 import { useExtend, type ExtendDirection, EXTEND_SECONDS, DEFAULT_EXTEND_SECONDS } from '../hooks/use-extend'
 import { resolutionOptions, type ResolutionOption } from '../lib/video-resolution'
@@ -41,6 +42,7 @@ import { ApiClient, type ApiSuccessOf } from '../lib/api-client'
 import type { LoraSelection } from '../components/SettingsPanel'
 import { RetakePanel } from '../components/RetakePanel'
 import { ExtendPanel } from '../components/ExtendPanel'
+import { RestylePanel } from '../components/RestylePanel'
 import { ICLoraPanel, CONDITIONING_TYPES } from '../components/ICLoraPanel'
 import type { OutpaintPads } from '../components/OutpaintCanvasEditor'
 import { LoraLibraryModal } from '../components/LoraLibraryModal'
@@ -61,6 +63,7 @@ function AssetCard({
   onRetake,
   onExtend,
   onIcLora,
+  onRestyle,
   onToggleFavorite
 }: {
   asset: Asset
@@ -72,6 +75,7 @@ function AssetCard({
   onRetake?: (asset: Asset) => void
   onExtend?: (asset: Asset) => void
   onIcLora?: (asset: Asset) => void
+  onRestyle?: (asset: Asset) => void
   onToggleFavorite?: () => void
 }) {
   const hoverVideoRef = useRef<HTMLVideoElement>(null)
@@ -224,6 +228,15 @@ function AssetCard({
                   >
                     <Sparkles className="h-3 w-3" />
                     IC-LoRA
+                  </button>
+                )}
+                {onRestyle && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onRestyle(asset) }}
+                    className="px-2.5 py-1.5 rounded-lg bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition-colors flex items-center gap-1.5 text-xs font-medium whitespace-nowrap"
+                  >
+                    <Wand2 className="h-3 w-3" />
+                    Restyle
                   </button>
                 )}
               </>
@@ -437,7 +450,7 @@ function LoRAPicker({
   )
 }
 
-type GenSpaceMode = 'image' | 'video' | 'retake' | 'extend' | 'ic-lora'
+type GenSpaceMode = 'image' | 'video' | 'retake' | 'extend' | 'ic-lora' | 'restyle'
 
 // Resolve a selected resolution option key to {width,height}, or undefined for "original"
 // (backend then uses the source resolution).
@@ -757,6 +770,8 @@ function PromptBar({
             onKeyDown={handleKeyDown}
             placeholder={mode === 'retake'
               ? "Describe what should happen in the selected section..."
+              : mode === 'restyle'
+                ? "Describe the style to apply, or leave empty to match the stylized frame..."
               : mode === 'extend'
                 ? "Describe what should happen in the new frames... (optional)"
               : mode === 'ic-lora'
@@ -786,13 +801,14 @@ function PromptBar({
             { value: 'image', label: 'Generate Images', icon: <Image className="h-4 w-4" /> },
             { value: 'video', label: 'Generate Videos', icon: <Video className="h-4 w-4" /> },
             { value: 'retake', label: 'Retake', icon: <Scissors className="h-4 w-4" /> },
+            { value: 'restyle', label: 'Restyle', icon: <Wand2 className="h-4 w-4" /> },
             { value: 'extend', label: 'Extend', icon: <MoveHorizontal className="h-4 w-4" /> },
             ...(canUseIcLora ? [{ value: 'ic-lora', label: 'IC-LoRA', icon: <Sparkles className="h-4 w-4" /> }] : []),
           ]}
           trigger={
             <>
-              {mode === 'image' ? <Image className="h-3.5 w-3.5" /> : mode === 'retake' ? <Scissors className="h-3.5 w-3.5" /> : mode === 'extend' ? <MoveHorizontal className="h-3.5 w-3.5" /> : mode === 'ic-lora' ? <Sparkles className="h-3.5 w-3.5" /> : <Video className="h-3.5 w-3.5" />}
-              <span className="text-zinc-300 font-medium">{mode === 'image' ? 'Image' : mode === 'retake' ? 'Retake' : mode === 'extend' ? 'Extend' : mode === 'ic-lora' ? 'IC-LoRA' : 'Video'}</span>
+              {mode === 'image' ? <Image className="h-3.5 w-3.5" /> : mode === 'retake' ? <Scissors className="h-3.5 w-3.5" /> : mode === 'restyle' ? <Wand2 className="h-3.5 w-3.5" /> : mode === 'extend' ? <MoveHorizontal className="h-3.5 w-3.5" /> : mode === 'ic-lora' ? <Sparkles className="h-3.5 w-3.5" /> : <Video className="h-3.5 w-3.5" />}
+              <span className="text-zinc-300 font-medium">{mode === 'image' ? 'Image' : mode === 'retake' ? 'Retake' : mode === 'restyle' ? 'Restyle' : mode === 'extend' ? 'Extend' : mode === 'ic-lora' ? 'IC-LoRA' : 'Video'}</span>
               <ChevronUp className="h-3 w-3 text-zinc-500" />
             </>
           }
@@ -1471,6 +1487,24 @@ export function GenSpace() {
     prompt: string
     input: { videoPath: string; direction: ExtendDirection; duration: number; videoDuration: number }
   } | null>(null)
+  const {
+    submitRestyle,
+    resetRestyle,
+    isRestyling,
+    restyleStatus,
+    restyleResult,
+  } = useRestyle()
+  const [restyleInput, setRestyleInput] = useState({
+    videoPath: null as string | null,
+    stylizedImagePath: null as string | null,
+    ready: false,
+  })
+  const [restylePanelKey, setRestylePanelKey] = useState(0)
+  const [restyleInitial, setRestyleInitial] = useState<{
+    videoPath: string | null
+    stylizedImagePath: string | null
+  }>({ videoPath: null, stylizedImagePath: null })
+
   const [retakeInitial, setRetakeInitial] = useState<{
     videoPath: string | null
     duration?: number
@@ -1652,7 +1686,7 @@ export function GenSpace() {
   // effect below is still copying the result into project storage" window — the marker is only
   // removed once that effect's own reset()/resetX() runs, so ownership must last at least that
   // long too, or the watcher can import the same completion a second time.
-  const isAnyLocalGenerationInFlight = isGenerating || isRetaking || isExtending || isIcLoraGenerating
+  const isAnyLocalGenerationInFlight = isGenerating || isRetaking || isExtending || isIcLoraGenerating || isRestyling
     || !!videoPath || imagePaths.length > 0 || !!retakeResult || !!extendResult || !!icLoraResult
   useEffect(() => {
     if (!isAnyLocalGenerationInFlight) return
@@ -1874,6 +1908,53 @@ export function GenSpace() {
       resetRetake()
     })()
   }, [retakeResult, isRetaking, currentProjectId, activeProject?.assets, activeRetakeSource, addAsset, addTakeToAsset, setPendingRetakeUpdate, resetRetake])
+
+  // When restyle completes, save the restyled video as a new asset.
+  useEffect(() => {
+    if (!restyleResult || !currentProjectId || isRestyling) return
+    localStorage.removeItem(GENERATION_RECOVERY_KEY)
+    ;(async () => {
+      const copied = await addVisualAssetToProject(restyleResult.videoPath, currentProjectId, 'video')
+      if (!copied) {
+        logger.error('Could not persist restyle result to project storage')
+        setLocalError(createLocalGenerationError('Failed to save restyle output to project storage.'))
+        resetRestyle()
+        return
+      }
+      addAsset(currentProjectId, {
+        type: 'video',
+        path: copied.path,
+        bigThumbnailPath: copied.bigThumbnailPath,
+        smallThumbnailPath: copied.smallThumbnailPath,
+        width: copied.width,
+        height: copied.height,
+        prompt: lastPrompt,
+        resolution: '',
+        duration: 0,
+        generationParams: {
+          mode: 'restyle',
+          prompt: lastPrompt,
+          model: 'pro',
+          duration: 0,
+          resolution: '',
+          fps: 24,
+          audio: false,
+          cameraMotion: 'none',
+        },
+        takes: [{
+          path: copied.path,
+          bigThumbnailPath: copied.bigThumbnailPath,
+          smallThumbnailPath: copied.smallThumbnailPath,
+          width: copied.width,
+          height: copied.height,
+          createdAt: Date.now(),
+        }],
+        activeTakeIndex: 0,
+      })
+      setMode('video')
+      resetRestyle()
+    })()
+  }, [restyleResult, isRestyling, currentProjectId, addAsset, resetRestyle])
 
   // When extend completes, save the longer video as a new asset.
   useEffect(() => {
@@ -2396,6 +2477,17 @@ export function GenSpace() {
       return
     }
 
+    if (mode === 'restyle') {
+      if (!restyleInput.videoPath || !restyleInput.stylizedImagePath || !restyleInput.ready) return
+      await writeRecoveryContext({ prompt })
+      await submitRestyle({
+        videoPath: restyleInput.videoPath,
+        stylizedImagePath: restyleInput.stylizedImagePath,
+        prompt,
+      })
+      return
+    }
+
     if (mode === 'extend') {
       if (!extendInput.videoPath || !extendInput.ready) return
       extendSubmissionRef.current = {
@@ -2508,6 +2600,16 @@ export function GenSpace() {
     setRetakePanelKey((prev) => prev + 1)
   }
 
+  const handleRestyle = (videoAsset: Asset) => {
+    setMode('restyle')
+    setPrompt('')
+    setRestyleInitial({
+      videoPath: videoAsset.path,
+      stylizedImagePath: null,
+    })
+    setRestylePanelKey((prev) => prev + 1)
+  }
+
   const handleExtend = (videoAsset: Asset) => {
     setMode('extend')
     setPrompt('')
@@ -2533,6 +2635,7 @@ export function GenSpace() {
   const isRetakeMode = mode === 'retake'
   const isExtendMode = mode === 'extend'
   const isIcLoraMode = mode === 'ic-lora'
+  const isRestyleMode = mode === 'restyle'
   const hasCompatibleVideoSettings = mode !== 'video' || (
     !isLoadingVideoGenerationModelSpecs
     && videoModelSpecs.length > 0
@@ -2549,16 +2652,20 @@ export function GenSpace() {
       : isIcLoraMode
         ? (!!prompt.trim() || promptOptional) && icLoraInput.ready && !!icLoraInput.videoPath && !isIcLoraGenerating
           && (isCatalogIcLora || icLoraCondType !== 'custom' || !!icLoraCustomRef)
-        : !!prompt.trim() && hasCompatibleVideoSettings)
-  const promptButtonLabel = isRetakeMode ? 'Retake' : isExtendMode ? 'Extend' : isIcLoraMode ? 'Generate' : 'Generate'
+        : isRestyleMode
+          ? restyleInput.ready && !!restyleInput.videoPath && !!restyleInput.stylizedImagePath && !isRestyling
+          : !!prompt.trim() && hasCompatibleVideoSettings)
+  const promptButtonLabel = isRetakeMode ? 'Retake' : isExtendMode ? 'Extend' : isIcLoraMode ? 'Generate' : isRestyleMode ? 'Restyle' : 'Generate'
   const promptButtonIcon = isRetakeMode
     ? <Scissors className="h-3.5 w-3.5" />
     : isExtendMode
       ? <MoveHorizontal className="h-3.5 w-3.5" />
       : isIcLoraMode
         ? <Sparkles className="h-3.5 w-3.5" />
+        : isRestyleMode
+          ? <Wand2 className="h-3.5 w-3.5" />
     : <Sparkles className={`h-3.5 w-3.5 ${isGenerating ? 'animate-pulse' : ''}`} />
-  const promptGenerating = isRetakeMode ? isRetaking : isExtendMode ? isExtending : isIcLoraMode ? isIcLoraGenerating : isGenerating
+  const promptGenerating = isRetakeMode ? isRetaking : isExtendMode ? isExtending : isIcLoraMode ? isIcLoraGenerating : isRestyleMode ? isRestyling : isGenerating
   
   // Close size menu on click outside
   useEffect(() => {
@@ -2777,6 +2884,7 @@ export function GenSpace() {
                   onRetake={handleRetake}
                   onExtend={handleExtend}
                   onIcLora={!forceApiGenerations ? handleIcLora : undefined}
+                  onRestyle={handleRestyle}
                   onToggleFavorite={() => currentProjectId && toggleFavorite(currentProjectId, asset.id)}
                 />
               ))}
@@ -2796,6 +2904,21 @@ export function GenSpace() {
             processingStatus={retakeStatus}
             enforceApiConstraints={!isLocalMode}
             onChange={setRetakeInput}
+          />
+        </div>
+      )}
+
+      {mode === 'restyle' && (
+        <div className="absolute inset-x-0 top-0 bottom-[160px] px-4 pt-4 pb-4 flex flex-col overflow-hidden">
+          <RestylePanel
+            initialVideoPath={restyleInitial.videoPath}
+            initialImagePath={restyleInitial.stylizedImagePath}
+            resetKey={restylePanelKey}
+            fillHeight
+            isProcessing={isRestyling}
+            processingStatus={restyleStatus}
+            enforceApiConstraints={!isLocalMode}
+            onChange={setRestyleInput}
           />
         </div>
       )}
