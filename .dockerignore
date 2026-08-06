@@ -7,3 +7,7 @@ backend/.venv
 backend/outputs
 backend/models
 .git
+# Host-side model download scripts — not needed (and not wanted) inside the
+# worker images; run them on the box before compose up.
+runner/**/download_models.sh
+runner/download_all_models.sh
