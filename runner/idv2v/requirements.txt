@@ -1,0 +1,31 @@
+aiohttp>=3.11.0
+torch>=2.6.0
+torchvision>=0.21.0
+transformers>=5.9.0
+accelerate>=1.1.0
+diffusers>=0.31.0
+xformers>=0.0.28
+numpy>=1.26.0
+opencv-python>=4.10.0
+imageio>=2.35.0
+imageio-ffmpeg>=0.5.0
+Pillow>=10.0.0
+xfuser>=0.3.0
+
+# --- int8 quantization of the video model (DiT/VACE) ---
+torchao>=0.7.0
+bitsandbytes>=0.43.0
+
+# --- ID-V2V video model (Wan2.1 I2V 14B DiT + VACE) deps ---
+# diffsynth (the Wan pipeline fork) + SAM3 are NOT pip-index packages: they come
+# from the Eyeline-Labs/ID-V2V reference repo. The Dockerfile clones the pinned
+# commit (IDV2V_REF_REPO / IDV2V_REF_COMMIT) and installs ./diffsynth_studio + ./
+# from source, so don't add a pip `diffsynth @ git+...` line here. For a non-Docker
+# venv, install from that checkout:
+#   git clone https://github.com/Eyeline-Labs/ID-V2V ref && cd ref && \
+#   pip install -r requirements.txt && pip install ./diffsynth_studio .
+#
+# NOTE: unlike the standalone id-v2v runner, this worker does NOT install
+# livepeer-gateway — it never registers with the Orchestrator (that is the
+# live-runner's job). It only serves the internal /load /evict /v1/restyle
+# surface over the Docker network.
