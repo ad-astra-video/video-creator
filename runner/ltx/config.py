@@ -14,6 +14,26 @@ PRICE = float(os.environ.get("PRICE", "0.5"))
 PRICE_UNIT = os.environ.get("PRICE_UNIT", "fixed")
 HOST = os.environ.get("HOST", "0.0.0.0")
 
+# ── Worker auth (shared with live-runner) ────────────────────────────────────
+# Work persists to the env so the live-runner and worker agree. Auto-generated
+# at first use when blank (see _worker_token()).
+WORKER_TOKEN = os.environ.get("WORKER_TOKEN", "")
+
+
+def _random_token():
+    import random
+    import string
+    return "".join(random.choices(string.ascii_letters + string.digits, k=32))
+
+
+def worker_token() -> str:
+    """Return the worker auth token, auto-generating a stable one if blank."""
+    global WORKER_TOKEN
+    if not WORKER_TOKEN:
+        WORKER_TOKEN = os.environ["WORKER_TOKEN"] = _random_token()
+    return WORKER_TOKEN
+
+
 # Optional GPU profile overrides (see runner.gpu_profile) — useful under docker
 # where the container's CUDA index may differ from the host's.
 GPU_VRAM_GB = os.environ.get("GPU_VRAM_GB") or None   # e.g. "24" or "32"

@@ -175,6 +175,21 @@ class VideoCreatorInferenceEngine:
             self._pipeline = None
             self._free_vram()
 
+    def free(self) -> None:
+        """Release ALL resident pipelines + cached GPU memory.
+
+        Called by the worker's /evict endpoint so another worker can take the
+        GPU. The video and image pipelines reload lazily on the next generate
+        call (via _ensure_pipeline / _ensure_zimage), so no warm-up is needed
+        here beyond the engine's existing lazy-load behavior.
+        """
+        with self._model_lock:
+            if self._pipeline is not None or self._zimage_pipe is not None:
+                logger.info("Freeing full engine (video + image pipelines) from GPU")
+                self._pipeline = None
+                self._zimage_pipe = None
+                self._free_vram()
+
     def set_loras(self, loras: list[tuple[str, float]] | None) -> None:
         """Set the desired LoRA set for the next generation.
 

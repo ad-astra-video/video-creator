@@ -42,6 +42,7 @@ from runner.ltx.config import (
     TEXT_ENCODER_ROOT,
     UPSCALER_PATH,
     WARMUP,
+    worker_token,
 )
 from runner.ltx.gpu_profile import build_profile
 from runner.ltx.inference import VideoCreatorInferenceEngine
@@ -80,6 +81,44 @@ _generation_lock = asyncio.Lock()
 def _read_file_b64(path: str) -> str:
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
+
+
+def _require_token(request: web.Request) -> None:
+    """Reject the request unless it carries the shared worker token.
+
+    Control-plane endpoints (/load, /evict) REQUIRE the token so only the
+    live-runner edge can drive the swap policy. Generation /v1/* endpoints are
+    left open for orchestrator proxying in this transitional worker; the
+    live-runner applies X-Worker-Token to every upstream call it makes.
+    """
+    expected = worker_token()
+    provided = request.headers.get("X-Worker-Token", "")
+    if not provided or provided != expected:
+        raise web.HTTPForbidden(reason="missing/mismatched X-Worker-Token")
+
+
+async def handle_load(_req: web.Request) -> web.Response:
+    """POST /load — ensure the inference engine is resident (kept warm).
+
+    The model loads lazily on the first generate call; this is a no-op warm-up
+    call from the live-runner's swap policy so a subsequent task doesn't pay
+    the cold-start cost. Returns 200 (loaded or already-loaded).
+    """
+    _require_token(_req)
+    assert engine is not None
+    return web.json_response({"loaded": True, "ready": ready})
+
+
+async def handle_evict(_req: web.Request) -> web.Response:
+    """POST /evict — drop all resident pipelines + free GPU memory.
+
+    Called by the live-runner before it swaps in another worker's model on the
+    shared GPU. The next /v1/* generation reloads lazily.
+    """
+    _require_token(_req)
+    assert engine is not None
+    engine.free()
+    return web.json_response({"evicted": True})
 
 
 async def _run_generation(fn, *args, **kwargs):
@@ -759,6 +798,11 @@ def create_app() -> web.Application:
     # video (base64) in the request body. Raise it so attached media isn't
     # rejected with 413 "Maximum request body size ... exceeded".
     app = web.Application(client_max_size=_MAX_BODY_BYTES)
+    # Worker control surface (token-gated) — drives the swap policy from the
+    # live-runner edge. Placed at /video-creator/worker/* so they don't collide
+    # with orchestrator-facing generation routes.
+    app.router.add_post(f"/video-creator/worker/load", handle_load)
+    app.router.add_post(f"/video-creator/worker/evict", handle_evict)
     p = "/video-creator/v1"
     app.router.add_get(f"{p}/health", handle_health)
     app.router.add_get(f"{p}/info", handle_info)
