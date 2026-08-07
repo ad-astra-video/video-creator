@@ -31,8 +31,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 # (otherwise pip's ">=2.6" pulls a PyPI torch build and torchao resolves to a
 # version incompatible with it).
 # Pin exact cu128 versions that ship cp310 wheels (diffsynth fork requires py3.10).
+# cu128 supports Blackwell SM120 (RTX 5090). torch 2.7.0+cu128 is the first
+# cu128 release with cp310 wheels; use it with matching vision/audio.
 RUN pip install --no-cache-dir \
-    torch==2.6.0+cu128 torchvision==0.21.0+cu128 torchaudio==2.6.0+cu128 \
+    torch==2.7.0+cu128 torchvision==0.22.0+cu128 torchaudio==2.7.0+cu128 \
     --index-url https://download.pytorch.org/whl/cu128
 
 # Worker deps: aiohttp, transformers, diffusers, xfuser, torchao int8, etc.
