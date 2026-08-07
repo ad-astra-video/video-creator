@@ -777,10 +777,12 @@ def create_app() -> web.Application:
     # rejected with 413 "Maximum request body size ... exceeded".
     app = web.Application(client_max_size=_MAX_BODY_BYTES)
     # Worker control surface (token-gated) — drives the swap policy from the
-    # live-runner edge. Placed at /video-creator/worker/* so they don't collide
-    # with orchestrator-facing generation routes.
-    app.router.add_post(f"/video-creator/worker/load", handle_load)
-    app.router.add_post(f"/video-creator/worker/evict", handle_evict)
+    # live-runner edge. Served at ROOT /load /evict to match the swap contract
+    # the live-runner's HttpWorkerTransport calls (base + "/load") and the
+    # convention idv2v-worker already uses. (Generation routes live under
+    # /video-creator/v1/*, so root control paths don't collide.)
+    app.router.add_post("/load", handle_load)
+    app.router.add_post("/evict", handle_evict)
     p = "/video-creator/v1"
     # Root /health alias so the live-runner's generic probe (base + "/health")
     # works for this worker too (idv2v-worker already serves root /health).
