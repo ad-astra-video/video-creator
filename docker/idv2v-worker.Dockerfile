@@ -42,7 +42,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Installed here (before requirements) so torch/torchvision are authoritative
 # and no later requirements line can downgrade them to a cu124/cu11 build.
 RUN pip install --no-cache-dir \
-    "torch>=2.7.0" "torchvision>=0.22.0" --index-url https://download.pytorch.org/whl/cu128
+    "torch>=2.7.0" "torchvision>=0.22.0" \
+    --index-url https://pypi.org/simple \
+    --extra-index-url https://download.pytorch.org/whl/cu128
 
 # --- Worker + runtime deps (NO torch/torchvision below — see above). ---
 COPY runner/idv2v/requirements.txt /tmp/idv2v-requirements.txt
