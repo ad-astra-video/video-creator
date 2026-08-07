@@ -95,9 +95,9 @@ services:
         condition: service_healthy
     runtime: nvidia
     environment:
-      - MODEL_CHECKPOINT=${MODEL_CHECKPOINT:-/models/checkpoint}
+      - MODEL_CHECKPOINT=${MODEL_CHECKPOINT:-/models/fp8/ltx-2.3-22b-distilled-fp8.safetensors}
       - TEXT_ENCODER_ROOT=${TEXT_ENCODER_ROOT:-/models/gemma}
-      - UPSCALER_PATH=${UPSCALER_PATH:-}
+      - UPSCALER_PATH=${UPSCALER_PATH:-/models/upsampler/ltx-2.3-spatial-upscaler-x2-1.1.safetensors}
       - GPU_DEVICE=${GPU_DEVICE:-0}
       - WORKER_TOKEN=${WORKER_TOKEN:-}
       - PORT=8991
