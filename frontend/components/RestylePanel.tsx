@@ -42,7 +42,6 @@ export function RestylePanel({
   resetKey,
   isProcessing = false,
   processingStatus = '',
-  fillHeight = false,
   enforceApiConstraints = true,
   onChange,
   onAccept,
@@ -60,7 +59,6 @@ export function RestylePanel({
   const [isExtracting, setIsExtracting] = useState(false)
   const [stylingError, setStylingError] = useState<string | null>(null)
 
-  const imageInputRef = useRef<HTMLInputElement>(null)
   const videoKnownRef = useRef<string | null>(null)
 
   const handleSourceChange = useCallback(async (data: { videoPath: string | null; videoDuration: number; width: number; height: number }) => {
@@ -98,6 +96,10 @@ export function RestylePanel({
   }, [])
 
   const canStyle = !!(extractedFramePath && stylePrompt.trim() && !isStyling && !isProcessing)
+
+  // Precedence for what's shown in the first-frame panel: a freshly generated
+  // candidate (not yet accepted) > the accepted/stylized image > the raw extracted frame.
+  const displayFramePath = candidateImagePath || stylizedImagePath || extractedFramePath
 
   const handleStyleFirstFrame = useCallback(async () => {
     if (!extractedFramePath) return
@@ -153,39 +155,6 @@ export function RestylePanel({
     ? validateVideoSource({ width: dimensions.width, height: dimensions.height, duration: videoDuration })
     : null
 
-  const handleImageFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const filePath = window.electronAPI?.getPathForFile?.(file)
-    const resolved = filePath || URL.createObjectURL(file)
-    setStylizedImagePath(resolved)
-    setCandidateImagePath(resolved)
-  }, [])
-
-  const handleImageDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    const assetData = e.dataTransfer.getData('asset')
-    if (assetData) {
-      try {
-        const asset = JSON.parse(assetData) as { type?: string; path?: string }
-        if (asset.type === 'image' && asset.path) {
-          setStylizedImagePath(asset.path)
-          setCandidateImagePath(asset.path)
-          return
-        }
-      } catch {
-        // fall through to file drop
-      }
-    }
-    const file = e.dataTransfer.files?.[0]
-    if (file && file.type.startsWith('image/')) {
-      const filePath = window.electronAPI?.getPathForFile?.(file)
-      const resolved = filePath || URL.createObjectURL(file)
-      setStylizedImagePath(resolved)
-      setCandidateImagePath(resolved)
-    }
-  }, [])
-
   useEffect(() => {
     if (resetKey === undefined) return
     setStylizedImagePath(initialImagePath || null)
@@ -201,120 +170,144 @@ export function RestylePanel({
   }, [videoPath, stylizedImagePath, error, onChange])
 
   return (
-    <div className="flex-1 flex flex-col gap-3 min-h-0">
-      <div className="flex-1 min-h-0">
-        <VideoPreviewPanel
-          title="Restyle"
-          initialVideoPath={initialVideoPath}
-          resetKey={resetKey}
-          isProcessing={isProcessing}
-          processingStatus={processingStatus}
-          processingDefault="Restyling video..."
-          fillHeight={fillHeight}
-          emptyTitle="Drop a video to restyle"
-          hint={{ title: 'Restyle your video in a new style', subtitle: 'Describe the style below to restyle the first frame, then confirm it' }}
-          errorMessage={error ?? undefined}
-          onSourceChange={handleSourceChange}
-        />
-      </div>
-
-      {/* First-frame stylize step: style prompt + generate + accept */}
-      <div className="flex-shrink-0 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <Film className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-          <span className="text-xs text-zinc-400">
-            {isExtracting ? 'Extracting first frame...' : 'Restyle the first frame'}
-          </span>
-        </div>
-        <div className="flex gap-2">
-          <input
-            value={stylePrompt}
-            onChange={(e) => setStylePrompt(e.target.value)}
-            placeholder="e.g. cyberpunk anime, watercolor, cinematic film still..."
-            className="flex-1 bg-zinc-800/60 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-zinc-500"
-            disabled={!extractedFramePath || isStyling || isProcessing}
+    <div className="flex-1 flex flex-col min-h-0 gap-3">
+      {/* Side-by-side: source video preview on the left, extracted first frame on the right */}
+      <div className="flex-1 min-h-0 flex gap-3">
+        <div className="flex-1 min-w-0 min-h-0">
+          <VideoPreviewPanel
+            title="Restyle"
+            initialVideoPath={initialVideoPath}
+            resetKey={resetKey}
+            isProcessing={isProcessing}
+            processingStatus={processingStatus}
+            processingDefault="Restyling video..."
+            fillHeight
+            emptyTitle="Drop a video to restyle"
+            hint={{ title: 'Restyle your video in a new style' }}
+            errorMessage={error ?? undefined}
+            onSourceChange={handleSourceChange}
           />
-          <button
-            onClick={handleStyleFirstFrame}
-            disabled={!canStyle}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-700 text-white text-xs font-medium hover:bg-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
-          >
-            {isStyling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
-            Restyle frame
-          </button>
         </div>
 
-        {stylingError && (
-          <p className="text-[11px] text-red-400">{stylingError}</p>
-        )}
+        {/* Extracted-first-frame panel (right of the video preview) */}
+        <div className="w-[300px] flex-shrink-0 min-h-0 flex flex-col gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-3 overflow-hidden">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Film className="h-4 w-4 text-zinc-400" />
+            <span className="text-xs text-zinc-300 font-medium">
+              {isExtracting ? 'Extracting first frame...' : 'First frame'}
+            </span>
+            {displayFramePath !== extractedFramePath && displayFramePath && (
+              <span className="ml-auto text-[10px] text-emerald-400">
+                {candidateImagePath && stylizedImagePath !== candidateImagePath ? 'candidate' : 'stylized'}
+              </span>
+            )}
+          </div>
 
-        {/* Candidate result + accept */}
-        {candidateImagePath && (
-          <div className="flex items-center gap-2">
-            <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-              <img src={pathToFileUrl(candidateImagePath)} alt="" className="w-full h-full object-cover" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[11px] text-emerald-400 font-medium">Generated stylized first frame</span>
+          {/* Extracted (then optionally stylized) first frame */}
+          <div className="flex-1 min-h-0 relative rounded-xl border border-zinc-800 bg-black flex items-center justify-center overflow-hidden">
+            {isExtracting ? (
+              <div className="flex flex-col items-center gap-2 text-zinc-500">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-xs">Extracting first frame...</span>
+              </div>
+            ) : displayFramePath ? (
+              <img src={pathToFileUrl(displayFramePath)} alt="" className="w-full h-full object-contain" />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-zinc-600">
+                <Image className="h-6 w-6" />
+                <span className="text-[11px] px-3 text-center">Drop a video to extract its first frame</span>
+              </div>
+            )}
+            {displayFramePath && !isExtracting && stylizedImagePath !== extractedFramePath && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setStylizedImagePath(null) }}
+                className="absolute top-1.5 right-1.5 p-1 rounded-full bg-zinc-800/80 text-zinc-400 hover:text-white"
+                title="Clear"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Style prompt + restyle/accept controls */}
+          <div className="flex-shrink-0 flex flex-col gap-2">
+            <input
+              value={stylePrompt}
+              onChange={(e) => setStylePrompt(e.target.value)}
+              placeholder="Describe a style..."
+              className="w-full bg-zinc-800/60 border border-zinc-700 rounded-md px-2 py-1.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-zinc-500"
+              disabled={!extractedFramePath || isStyling || isProcessing}
+            />
+
+            {extractedFramePath && !candidateImagePath ? (
+              // Step 1 done: raw first frame extracted. Offer to restyle it, or accept
+              // the extracted frame as-is to proceed with the restyle.
               <div className="flex gap-2">
                 <button
+                  onClick={handleStyleFirstFrame}
+                  disabled={!canStyle}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-700 text-white text-xs font-medium hover:bg-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isStyling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                  Restyle frame
+                </button>
+                <button
                   onClick={handleAccept}
-                  className="flex items-center gap-1 px-3 py-1 rounded-md bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-500 transition-colors"
+                  disabled={!extractedFramePath}
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <Check className="h-3.5 w-3.5" />
                   Accept
                 </button>
+              </div>
+            ) : candidateImagePath && stylizedImagePath !== candidateImagePath ? (
+              // Step 2 done: a stylized candidate is generated but not yet accepted.
+              <div className="flex gap-2">
                 <button
-                  onClick={() => setCandidateImagePath(null)}
-                  className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-300 text-xs font-medium hover:bg-zinc-700 transition-colors"
+                  onClick={handleStyleFirstFrame}
+                  disabled={!canStyle}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-700 text-white text-xs font-medium hover:bg-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  Reject
+                  <Wand2 className="h-3.5 w-3.5" />
+                  Re-style
+                </button>
+                <button
+                  onClick={handleAccept}
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-500 transition-colors"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Accept
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+            ) : stylizedImagePath ? (
+              // An image is accepted (extracted or stylized); allow re-styling.
+              <button
+                onClick={handleStyleFirstFrame}
+                disabled={!canStyle}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-700 text-white text-xs font-medium hover:bg-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {isStyling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                Re-style
+              </button>
+            ) : (
+              <button
+                onClick={handleStyleFirstFrame}
+                disabled={!canStyle}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-700 text-white text-xs font-medium hover:bg-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {isStyling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                Restyle frame
+              </button>
+            )}
 
-        {!candidateImagePath && stylizedImagePath && (
-          <p className="text-[11px] text-zinc-400">Using {stylizedImagePath === extractedFramePath ? 'the extracted first frame' : 'a stylized image'}</p>
-        )}
-      </div>
-
-      {/* Stylized first-frame image (manual shortcut / shows accepted result) */}
-      <div
-        className={`relative h-28 rounded-xl border-2 border-dashed transition-colors flex items-center justify-center flex-shrink-0 cursor-pointer overflow-hidden ${
-          stylizedImagePath ? 'border-emerald-600' : 'border-zinc-700 hover:border-zinc-500'
-        }`}
-        onClick={() => imageInputRef.current?.click()}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={handleImageDrop}
-      >
-        {stylizedImagePath ? (
-          <>
-            <img src={pathToFileUrl(stylizedImagePath)} alt="" className="w-full h-full object-cover" />
-            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-[10px] text-emerald-300">
-              Stylized first frame
-            </span>
-            <button
-              onClick={(e) => { e.stopPropagation(); setStylizedImagePath(null) }}
-              className="absolute top-1 right-1 p-1 rounded-full bg-zinc-800 text-zinc-400 hover:text-white"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-1 text-zinc-500">
-            <Image className="h-5 w-5" />
-            <span className="text-xs">or drop a stylized first-frame image</span>
+            {stylingError && (
+              <p className="text-[11px] text-red-400">{stylingError}</p>
+            )}
+            {candidateImagePath && stylizedImagePath !== candidateImagePath && (
+              <p className="text-[10px] text-emerald-400">Generated a stylized frame — accept to use it.</p>
+            )}
           </div>
-        )}
-        <input
-          ref={imageInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageFileSelect}
-          className="hidden"
-        />
+        </div>
       </div>
     </div>
   )
