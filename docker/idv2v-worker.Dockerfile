@@ -31,15 +31,23 @@ ENV PATH="/opt/venv/bin:$PATH"
 # (otherwise pip's ">=2.6" pulls a PyPI torch build and torchao resolves to a
 # version incompatible with it).
 # Pin exact cu128 versions that ship cp310 wheels (diffsynth fork requires py3.10).
-# cu128 supports Blackwell SM120 (RTX 5090). torch 2.7.0+cu128 is the first
-# cu128 release with cp310 wheels; use it with matching vision/audio.
+# cu128 supports Blackwell SM120 (RTX 5090); torch 2.7.0+cu128 is the first
+# cu128 release with cp310 wheels. Use PyPI as the primary index and cu128 as an
+# EXTRA index so ordinary deps of torch (typing-extensions) resolve from PyPI
+# while the torch wheel itself comes from cu128.
 RUN pip install --no-cache-dir \
     torch==2.7.0+cu128 torchvision==0.22.0+cu128 torchaudio==2.7.0+cu128 \
-    --index-url https://download.pytorch.org/whl/cu128
+    --index-url https://pypi.org/simple \
+    --extra-index-url https://download.pytorch.org/whl/cu128
 
 # Worker deps: aiohttp, transformers, diffusers, xfuser, torchao int8, etc.
+# Use cu128 as an EXTRA index so pip keeps the torch==2.7.0+cu128 installed
+# above (Blackwell SM120) instead of re-pulling a PyPI cu124 build.
 COPY runner/idv2v/requirements.txt /tmp/idv2v-requirements.txt
-RUN pip install --no-cache-dir -r /tmp/idv2v-requirements.txt
+RUN pip install --no-cache-dir \
+    -r /tmp/idv2v-requirements.txt \
+    --index-url https://pypi.org/simple \
+    --extra-index-url https://download.pytorch.org/whl/cu128
 
 # diffsynth (the Wan pipeline fork) + SAM3 come from the Eyeline-Labs/ID-V2V
 # reference repo, NOT pip. Clone the pinned commit and install from source.
