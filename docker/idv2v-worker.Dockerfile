@@ -30,8 +30,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 # pinned torch is authoritative and torchao/other deps later resolve against it
 # (otherwise pip's ">=2.6" pulls a PyPI torch build and torchao resolves to a
 # version incompatible with it).
+# Pin exact cu128 versions that ship cp310 wheels (diffsynth fork requires py3.10).
 RUN pip install --no-cache-dir \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+    torch==2.6.0+cu128 torchvision==0.21.0+cu128 torchaudio==2.6.0+cu128 \
+    --index-url https://download.pytorch.org/whl/cu128
 
 # Worker deps: aiohttp, transformers, diffusers, xfuser, torchao int8, etc.
 COPY runner/idv2v/requirements.txt /tmp/idv2v-requirements.txt
