@@ -782,6 +782,9 @@ def create_app() -> web.Application:
     app.router.add_post(f"/video-creator/worker/load", handle_load)
     app.router.add_post(f"/video-creator/worker/evict", handle_evict)
     p = "/video-creator/v1"
+    # Root /health alias so the live-runner's generic probe (base + "/health")
+    # works for this worker too (idv2v-worker already serves root /health).
+    app.router.add_get("/health", handle_health)
     app.router.add_get(f"{p}/health", handle_health)
     app.router.add_get(f"{p}/info", handle_info)
     app.router.add_post(f"{p}/t2v", handle_t2v)
