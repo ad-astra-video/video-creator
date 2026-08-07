@@ -1,5 +1,5 @@
 appId: com.lightricks.ltx-desktop
-productName: LTX Desktop
+productName: Video Creator
 copyright: Copyright © 2026 Lightricks
 
 directories:
@@ -56,7 +56,7 @@ nsis:
   installerHeaderIcon: resources/icon.ico
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: LTX Desktop
+  shortcutName: Video Creator
 
 mac:
   hardenedRuntime: true

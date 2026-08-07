@@ -55,7 +55,7 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
         _terminate(r)
 
 
-app = FastAPI(title="LTX Desktop Perf Dashboard", lifespan=_lifespan)
+app = FastAPI(title="Video Creator Perf Dashboard", lifespan=_lifespan)
 # Serve run artifacts (sanity input/output media + index.html) so they open
 # in-browser over http -> /results/sanity_<ts>/  (file:// media tags are blocked).
 app.mount("/results", StaticFiles(directory=str(RUNS_DIR), html=True), name="results")

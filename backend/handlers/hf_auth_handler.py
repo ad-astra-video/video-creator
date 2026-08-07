@@ -35,7 +35,7 @@ _OAUTH_PENDING_TIMEOUT_SECONDS = 600  # 10 minutes
 _SUCCESS_HTML = (
     "<html><body style='font-family:system-ui,sans-serif;text-align:center;padding:60px;background:#18181b;color:#e4e4e7'>"
     "<h2>Authentication Successful</h2>"
-    "<p style='color:#a1a1aa'>You can close this tab and return to LTX Desktop.</p>"
+    "<p style='color:#a1a1aa'>You can close this tab and return to Video Creator.</p>"
     "<script>window.close()</script>"
     "</body></html>"
 )
@@ -44,7 +44,7 @@ _ERROR_HTML_TEMPLATE = (
     "<html><body style='font-family:system-ui,sans-serif;text-align:center;padding:60px;background:#18181b;color:#e4e4e7'>"
     "<h2 style='color:#f87171'>Authentication Failed</h2>"
     "<p style='color:#a1a1aa'>{msg}</p>"
-    "<p style='color:#71717a'>Please close this tab and try again in LTX Desktop.</p>"
+    "<p style='color:#71717a'>Please close this tab and try again in Video Creator.</p>"
     "</body></html>"
 )
 

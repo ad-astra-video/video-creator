@@ -1,6 +1,6 @@
 # Performance Runner
 
-A performance & validation harness for the LTX Desktop backend. It drives real
+A performance & validation harness for the Video Creator backend. It drives real
 generations over HTTP, samples GPU VRAM (and host RAM) via `nvidia-smi` / psutil,
 and reports on memory, VRAM fit per GPU tier, VRAM headroom (OOM margin), throughput
 (realtime factor), thermal/throttle + energy per generation, cold-start latency, output
@@ -8,7 +8,7 @@ integrity (resolution/duration/fps/audio + file size/bitrate), and correctness â
 a local dashboard (or the CLI).
 
 Everything runs against the same backend the app uses, so what you measure is
-what ships. Because LTX Desktop runs on the *user's own* GPU and shares their
+what ships. Because Video Creator runs on the *user's own* GPU and shares their
 machine, the harness leans on desktop-shaped questions: will a config fit a 12 GB
 card, does it leak into system RAM, how slow is the first generation after launch.
 
