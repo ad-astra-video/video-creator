@@ -26,22 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python3.10 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# PyTorch with CUDA 12.8 (Blackwell SM120 for the 5090). Install FIRST so the
-# pinned torch is authoritative and torchao/other deps later resolve against it
-# (otherwise pip's ">=2.6" pulls a PyPI torch build and torchao resolves to a
-# version incompatible with it).
-# Pin exact cu128 versions that ship cp310 wheels (diffsynth fork requires py3.10).
-# cu128 supports Blackwell SM120 (RTX 5090); torch 2.7.0+cu128 is the first
-# cu128 release with cp310 wheels. Use PyPI as the primary index and cu128 as an
-# EXTRA index so ordinary deps of torch (typing-extensions) resolve from PyPI
-# while the torch wheel itself comes from cu128.
-RUN pip install --no-cache-dir \
-    torch==2.7.0+cu128 torchvision==0.22.0+cu128 torchaudio==2.7.0+cu128 \
-    --index-url https://pypi.org/simple \
-    --extra-index-url https://download.pytorch.org/whl/cu128
-
-# Worker deps: aiohttp, torch/CUDA (consistent cu124 build, Blackwell-capable),
-# transformers, diffusers, xfuser, torchao int8, etc.
+# Worker deps: aiohttp + torch/CUDA (consistent cu124 build, which is
+# Blackwell/RTX-5090-capable) + transformers, diffusers, xfuser, torchao int8.
+# All resolved together against PyPI so torch/torchvision/torchaudio stay ABI-
+# consistent (matches the reference repo's proven build).
 COPY runner/idv2v/requirements.txt /tmp/idv2v-requirements.txt
 RUN pip install --no-cache-dir -r /tmp/idv2v-requirements.txt
 
