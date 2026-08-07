@@ -152,9 +152,11 @@ def create_app() -> web.Application:
     p = "/video-creator/v1"
     app.router.add_get(f"{p}/health", handle_health)
     app.router.add_get(f"{p}/info", handle_info)
-    # Explicit named routes (mirrors the old server's path surface).
-    for endpoint in ROUTES:
-        app.router.add_post(f"{p}/{endpoint}", handle_generic)
+    # One parameterized route so handle_generic can read the endpoint from
+    # match_info["endpoint"] and look it up in ROUTES. (Previously these were
+    # registered as static paths with no {endpoint} placeholder, so match_info
+    # was empty and every proxied call returned 404 "unknown endpoint: ".)
+    app.router.add_post(f"{p}/{{endpoint}}", handle_generic)
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
     return app
