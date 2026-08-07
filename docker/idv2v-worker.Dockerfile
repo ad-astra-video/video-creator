@@ -26,13 +26,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python3.10 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Worker deps: aiohttp, torch/CUDA, transformers, diffusers, xfuser, torchao int8, etc.
-COPY runner/idv2v/requirements.txt /tmp/idv2v-requirements.txt
-RUN pip install --no-cache-dir -r /tmp/idv2v-requirements.txt
-
-# PyTorch with CUDA 12.8 (Blackwell SM120 for the 5090)
+# PyTorch with CUDA 12.8 (Blackwell SM120 for the 5090). Install FIRST so the
+# pinned torch is authoritative and torchao/other deps later resolve against it
+# (otherwise pip's ">=2.6" pulls a PyPI torch build and torchao resolves to a
+# version incompatible with it).
 RUN pip install --no-cache-dir \
     torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+
+# Worker deps: aiohttp, transformers, diffusers, xfuser, torchao int8, etc.
+COPY runner/idv2v/requirements.txt /tmp/idv2v-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/idv2v-requirements.txt
 
 # diffsynth (the Wan pipeline fork) + SAM3 come from the Eyeline-Labs/ID-V2V
 # reference repo, NOT pip. Clone the pinned commit and install from source.

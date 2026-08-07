@@ -13,7 +13,9 @@ Pillow>=10.0.0
 xfuser>=0.3.0
 
 # --- int8 quantization of the video model (DiT/VACE) ---
-torchao>=0.7.0
+# Upper-bound torchao: 0.18+ requires torch>=2.7, but the worker builds against
+# torch 2.6 + cu128 (Blackwell SM120). 0.7.x/0.8.x are torch-2.6 compatible.
+torchao>=0.7.0,<0.9
 bitsandbytes>=0.43.0
 
 # --- ID-V2V video model (Wan2.1 I2V 14B DiT + VACE) deps ---
