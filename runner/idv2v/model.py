@@ -156,19 +156,22 @@ class ModelManager:
             WanVideoPipeline,
         )
 
-        # DiT + VACE come from the finetuned idv2v.pth; we skip the ~56 GB of
-        # base I2V + VACE-14B weights (same fast path as the reference script).
+        # DiT + VACE come from the finetuned idv2v.pth, so we SKIP loading the
+        # base I2V DiT (same fast path as the reference script). We only load the
+        # single-file env models the WanVideoPipeline needs: T5 text-encoder, VAE
+        # and CLIP image-encoder, plus the google/* tokenizer.
+        #
+        # diffsynth resolves each file as local_model_path/<model_id>/<pattern>.
+        # We downloaded the whole Wan-AI/Wan2.1-I2V-14B-720P repo (which via
+        # redirect_common_files carries T5/VAE/CLIP/tokenizer inside it), so all
+        # model configs point at that one repo with a single-file pattern each —
+        # never a glob, because a multi-file glob resolves to a LIST and crashes
+        # model_manager.match() ("'list' has no attribute 'endswith'").
+        I2V_REPO = "Wan-AI/Wan2.1-I2V-14B-720P"
         model_configs = [
-            ModelConfig(
-                model_id="Wan-AI/Wan2.1-T2V-14B",
-                origin_file_pattern="google/*",           # T5 tokenizer
-                offload_device="cpu",
-            ),
-            ModelConfig(
-                model_id="Wan-AI/Wan2.1-I2V-14B-720P",
-                origin_file_pattern=f"{config.WAN_MODEL_DIR}/*",
-                offload_device="cpu",
-            ),
+            ModelConfig(model_id=I2V_REPO, origin_file_pattern="models_t5_umt5-xxl-enc-bf16.pth",  offload_device="cpu"),  # T5 text encoder
+            ModelConfig(model_id=I2V_REPO, origin_file_pattern="Wan2.1_VAE.pth",                   offload_device="cpu"),  # VAE
+            ModelConfig(model_id=I2V_REPO, origin_file_pattern="models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth", offload_device="cpu"),  # CLIP
         ]
 
         pipe = WanVideoPipeline.from_pretrained(
@@ -177,11 +180,11 @@ class ModelManager:
             use_usp=False,                 # single-GPU 5090 -> no USP sequence parallel
             model_configs=model_configs,
             tokenizer_config=ModelConfig(
-                model_id="Wan-AI/Wan2.1-T2V-14B",
+                model_id=I2V_REPO,
                 origin_file_pattern="google/*",
                 offload_device="cpu",
             ),
-            local_model_path=config.WAN_MODEL_DIR,
+            local_model_path=os.path.dirname(config.WAN_MODEL_DIR.rstrip("/")),  # /models  (parent of Wan-AI/...)
             checkpoint_path=None,
             skip_download=True,
             redirect_common_files=False,

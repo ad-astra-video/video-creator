@@ -134,7 +134,7 @@ services:
       - WORKER_TOKEN=${WORKER_TOKEN:-}
       - GPU_DEVICE=${GPU_DEVICE:-0}
       - MODEL_CHECKPOINT=${IDV2V_MODEL_CHECKPOINT:-/models/idv2v.pth}
-      - WAN_MODEL_DIR=${WAN_MODEL_DIR:-/models/wan}
+      - WAN_MODEL_DIR=${WAN_MODEL_DIR:-/models/Wan-AI/Wan2.1-I2V-14B-720P}
       - SAM3_CKPT=${SAM3_CKPT:-/models/sam3}
       - IDV2V_QUANT=${IDV2V_QUANT:-int8}
       - IDV2V_OFFLOAD=${IDV2V_OFFLOAD:-true}

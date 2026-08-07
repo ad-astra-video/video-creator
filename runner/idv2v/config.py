@@ -8,7 +8,10 @@ WORKER_TOKEN = os.environ.get("WORKER_TOKEN", "")
 
 # Model paths / knobs.
 MODEL_CHECKPOINT = os.environ.get("MODEL_CHECKPOINT", "/models/idv2v.pth")
-WAN_MODEL_DIR = os.environ.get("WAN_MODEL_DIR", "/models/wan")
+# HF-cache-style repo dir holding Wan2.1-I2V-14B-720P (T5/VAE/CLIP/tokenizer +
+# DiT shards). diffsynth resolves files as <parent>/Wan-AI/Wan2.1-I2V-14B-720P/<pattern>,
+# so local_model_path = dirname(WAN_MODEL_DIR) = /models.
+WAN_MODEL_DIR = os.environ.get("WAN_MODEL_DIR", "/models/Wan-AI/Wan2.1-I2V-14B-720P")
 SAM3_CKPT = os.environ.get("SAM3_CKPT", "/models/sam3")
 SAM_PROMPT = os.environ.get("SAM_PROMPT", "person")
 SKIP_SAM3 = os.environ.get("IDV2V_SKIP_SAM3", "0").lower() in {"1", "true", "yes"}

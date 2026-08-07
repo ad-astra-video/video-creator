@@ -55,7 +55,10 @@ RUN pip install --no-cache-dir -r /tmp/idv2v-requirements.txt
 # in the reference pyproject/uv.lock are bypassed. flash-attn is intentionally
 # omitted (SDPA fallback).
 ARG IDV2V_REF_REPO=https://github.com/Eyeline-Labs/ID-V2V
-ARG IDV2V_REF_COMMIT=HEAD
+# Pin the reference commit the worker's model.py was ported against. The
+# reference's own Dockerfile uses 33dd047; deviating to HEAD drifts the diffsynth
+# API (e.g. model_manager.match() changing to pass a list of paths -> crash).
+ARG IDV2V_REF_COMMIT=33dd047
 RUN pip install --no-cache-dir "setuptools<81" \
     && git clone --depth 1 "${IDV2V_REF_REPO}" /opt/idv2v-ref \
     && cd /opt/idv2v-ref \
