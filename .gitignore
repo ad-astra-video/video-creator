@@ -87,3 +87,6 @@ python-embed/
 
 # Downloaded during CI for Windows NSIS installer
 resources/vc_redist.x64.exe
+
+# Local agent deploy scaffolding (credentials live here; never commit)
+.hermes/

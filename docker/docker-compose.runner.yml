@@ -47,7 +47,7 @@ services:
   runner:
     build:
       context: ..
-      dockerfile: docker/runner.Dockerfile
+      dockerfile: docker/ltx-worker.Dockerfile
     image: ltx-desktop-runner
     container_name: ltx-runner
     depends_on:
