@@ -1,32 +1,63 @@
 aiohttp>=3.11.0
-torch>=2.6.0
-torchvision>=0.21.0
-transformers>=5.9.0
-accelerate>=1.1.0
-diffusers>=0.31.0
-xformers>=0.0.28
-numpy>=1.26.0
-opencv-python>=4.10.0
-imageio>=2.35.0
-imageio-ffmpeg>=0.5.0
-Pillow>=10.0.0
-xfuser>=0.3.0
+
+# NOTE: torch / torchvision are deliberately NOT listed here. They're installed
+# separately in the Dockerfile from the cu128 index (torch>=2.7) so the image gets
+# the sm_120/Blackwell build a 5090 needs. Keep them out of this file so a plain
+# `pip install -r` can't downgrade back to a cu124/cu11 build.
+
+# --- Wan2.1 I2V-14B DiT + VACE (diffsynth fork) runtime deps ---
+diffusers>=0.35.2
+peft
+transformers>=5.6
+huggingface-hub
+accelerate
+safetensors
+einops
+easydict
+pycocotools
+scikit-image
+natsort
+tqdm
+
+# ONNX (DAViD / alternate depth model)
+onnxruntime-gpu>=1.22
+onnx
+
+# diffsynth_studio requirements (cu12 variant to match CUDA 12.8 base)
+cupy-cuda12x
+sentencepiece
+protobuf
+modelscope
+ftfy
+pynvml
+pandas
+imageio
+imageio[ffmpeg]
+
+# media / utilities
+av
+opencv-python-headless
+matplotlib
+scipy
+numpy
+pillow
+setuptools
 
 # --- int8 quantization of the video model (DiT/VACE) ---
-# Upper-bound torchao: 0.18+ requires torch>=2.7, but this worker is on
-# torch 2.6 (the reference's consistent cu124 build, which is Blackwell-capable).
-# 0.7.x/0.8.x are torch-2.6 compatible.
-torchao>=0.7.0,<0.9
+# torchao 0.8.x is torch-2.6/2.7 compatible and imports cleanly. Pin <0.9 so a
+# resolver can't pull a newer torchao line tied to a different torch build.
+torchao>=0.8.0,<0.9
 bitsandbytes>=0.43.0
 
-# --- ID-V2V video model (Wan2.1 I2V 14B DiT + VACE) deps ---
+# --- ID-V2V video model (Wan2.1 I2V 14B DiT + VACE) build notes ---
 # diffsynth (the Wan pipeline fork) + SAM3 are NOT pip-index packages: they come
-# from the Eyeline-Labs/ID-V2V reference repo. The Dockerfile clones the pinned
-# commit (IDV2V_REF_REPO / IDV2V_REF_COMMIT) and installs ./diffsynth_studio + ./
-# from source, so don't add a pip `diffsynth @ git+...` line here. For a non-Docker
-# venv, install from that checkout:
-#   git clone https://github.com/Eyeline-Labs/ID-V2V ref && cd ref && \
-#   pip install -r requirements.txt && pip install ./diffsynth_studio .
+# from the Eyeline-Labs/ID-V2V reference repo. The Dockerfile clones it and
+# installs ./diffsynth_studio + . with --no-deps (bypassing the stale
+# hash-pinned torch2.6/cu11/flash-attn lines in its pyproject/uv.lock).
+#
+# flash-attn is intentionally NOT installed: the diffsynth attention module
+# falls back to native PyTorch SDPA (sm_120-capable in torch>=2.7) when no
+# flash lib is present, which is the zero-compile path that works on a 5090.
 #
 # NOTE: unlike the standalone id-v2v runner, this worker does NOT install
 # livepeer-gateway — it never registers with the Orchestrator (that is the
