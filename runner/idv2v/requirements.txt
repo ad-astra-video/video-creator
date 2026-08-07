@@ -1,4 +1,6 @@
 aiohttp>=3.11.0
+torch>=2.6.0
+torchvision>=0.21.0
 transformers>=5.9.0
 accelerate>=1.1.0
 diffusers>=0.31.0
@@ -11,8 +13,9 @@ Pillow>=10.0.0
 xfuser>=0.3.0
 
 # --- int8 quantization of the video model (DiT/VACE) ---
-# Upper-bound torchao: 0.18+ requires torch>=2.7, but the worker builds against
-# torch 2.6 + cu128 (Blackwell SM120). 0.7.x/0.8.x are torch-2.6 compatible.
+# Upper-bound torchao: 0.18+ requires torch>=2.7, but this worker is on
+# torch 2.6 (the reference's consistent cu124 build, which is Blackwell-capable).
+# 0.7.x/0.8.x are torch-2.6 compatible.
 torchao>=0.7.0,<0.9
 bitsandbytes>=0.43.0
 

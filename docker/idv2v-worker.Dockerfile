@@ -40,14 +40,10 @@ RUN pip install --no-cache-dir \
     --index-url https://pypi.org/simple \
     --extra-index-url https://download.pytorch.org/whl/cu128
 
-# Worker deps: aiohttp, transformers, diffusers, xfuser, torchao int8, etc.
-# Use cu128 as an EXTRA index so pip keeps the torch==2.7.0+cu128 installed
-# above (Blackwell SM120) instead of re-pulling a PyPI cu124 build.
+# Worker deps: aiohttp, torch/CUDA (consistent cu124 build, Blackwell-capable),
+# transformers, diffusers, xfuser, torchao int8, etc.
 COPY runner/idv2v/requirements.txt /tmp/idv2v-requirements.txt
-RUN pip install --no-cache-dir \
-    -r /tmp/idv2v-requirements.txt \
-    --index-url https://pypi.org/simple \
-    --extra-index-url https://download.pytorch.org/whl/cu128
+RUN pip install --no-cache-dir -r /tmp/idv2v-requirements.txt
 
 # diffsynth (the Wan pipeline fork) + SAM3 come from the Eyeline-Labs/ID-V2V
 # reference repo, NOT pip. Clone the pinned commit and install from source.
