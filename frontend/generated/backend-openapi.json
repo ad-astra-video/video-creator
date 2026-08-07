@@ -943,6 +943,34 @@
         "title": "ExtendRequest",
         "type": "object"
       },
+      "ExtractFirstFrameRequest": {
+        "description": "Extract a source video's first frame to an image file path.\n\nDrives the first half of the restyle workflow: drop a video -> the app\nextracts its first frame, the user restyles that still (Z-Image edit / remote\nfallbacks), confirms it, then the accepted image is passed to /restyle as\nstylized_first_frame. Extraction on the backend guarantees both steps share the\nsame source video and that the frame lands in an app-owned path (not a browser\nblob URL) that the downstream /restyle can read.",
+        "properties": {
+          "video_path": {
+            "title": "Video Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "video_path"
+        ],
+        "title": "ExtractFirstFrameRequest",
+        "type": "object"
+      },
+      "ExtractFirstFrameResponse": {
+        "description": "Path to the extracted first frame image (PNG).",
+        "properties": {
+          "imagePath": {
+            "title": "Imagepath",
+            "type": "string"
+          }
+        },
+        "required": [
+          "imagePath"
+        ],
+        "title": "ExtractFirstFrameResponse",
+        "type": "object"
+      },
       "GenerateImageCancelledResponse": {
         "properties": {
           "status": {
@@ -6432,6 +6460,57 @@
           }
         },
         "summary": "Route Restyle",
+        "tags": [
+          "restyle"
+        ]
+      }
+    },
+    "/api/restyle/extract-first-frame": {
+      "post": {
+        "operationId": "route_extract_first_frame_api_restyle_extract_first_frame_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractFirstFrameRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractFirstFrameResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Client Error"
+          },
+          "5XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            },
+            "description": "Server Error"
+          }
+        },
+        "summary": "Route Extract First Frame",
         "tags": [
           "restyle"
         ]

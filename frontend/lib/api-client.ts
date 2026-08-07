@@ -483,6 +483,8 @@ export class ApiClient {
 
   static restyle = makeEndpointClient('/api/restyle', 'post')
 
+  static extractFirstFrame = makeEndpointClient('/api/restyle/extract-first-frame', 'post')
+
   static extend = makeEndpointClient('/api/extend', 'post')
 
   static startHuggingFaceLogin = makeEndpointClient('/api/auth/huggingface/login', 'post')

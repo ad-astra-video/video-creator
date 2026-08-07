@@ -23,10 +23,18 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# The UI auto-fills this placeholder when a stylized first frame is accepted. The
+# user can edit it, but if they leave it as-is the default carries no real
+# direction for the id-v2v worker, so we strip it to a blank prompt before sending
+# anything to the runner (the stylized first frame is the actual style signal).
+DEFAULT_RESTYLE_PROMPT = "restyle this video"
+
 from api_types import (
     RestyleRequest,
     RestyleResponse,
     RestyleVideoResponse,
+    ExtractFirstFrameRequest,
+    ExtractFirstFrameResponse,
 )
 from _routes._errors import HTTPError
 from handlers.base import StateHandlerBase
@@ -37,7 +45,7 @@ from runtime_config.runtime_policy import decide_local_idv2v_mode
 from services.gpu_info.gpu_info_impl import GpuInfoImpl
 from services.idv2v_pipeline import LocalIdV2vPipeline
 from services.idv2v_pipeline.local_idv2v_pipeline import LocalIdV2vPipelineUnavailable
-from services.interfaces import GpuInfo
+from services.interfaces import GpuInfo, VideoProcessor
 from state.app_state_types import AppState
 
 
@@ -50,16 +58,22 @@ class RestyleHandler(StateHandlerBase):
         generation_handler: GenerationHandler,
         gpu_info: "GpuInfo | None" = None,
         local_idv2v: "LocalIdV2vPipeline | None" = None,
+        video_processor: "VideoProcessor | None" = None,
     ) -> None:
         super().__init__(state, lock, config)
         self._generation = generation_handler
         self._gpu_info = gpu_info or GpuInfoImpl()
         self._local_idv2v = local_idv2v or LocalIdV2vPipeline()
+        from services.video_processor.video_processor_impl import VideoProcessorImpl
+        self._video_processor = video_processor or VideoProcessorImpl()
 
     def run(self, req: RestyleRequest) -> RestyleResponse:
         video_path = req.video_path
         stylized_image_path = req.stylized_image_path
-        prompt = req.prompt
+        # The UI's auto-filled "restyle this video" placeholder is not a real style
+        # direction — drop it to an empty prompt so the runner uses the stylized
+        # first frame (the accepted Z-Image edit) as the actual style signal.
+        prompt = "" if req.prompt.strip().lower() == DEFAULT_RESTYLE_PROMPT else req.prompt.strip()
 
         if not stylized_image_path:
             raise HTTPError(400, "Missing stylized_image_path parameter")
@@ -219,3 +233,29 @@ class RestyleHandler(StateHandlerBase):
             except Exception as exc:
                 self._generation.fail_generation(str(exc))
                 raise HTTPError(500, str(exc)) from exc
+
+    def extract_first_frame(self, req: ExtractFirstFrameRequest) -> ExtractFirstFrameResponse:
+        """Extract a source video's first frame (frame 0) to an image file.
+
+        This is the upstream half of the restyle workflow: the app drops a video,
+        extracts this frame, restyles it (Z-Image edit / remote fallbacks), then
+        passes the accepted image to /restyle as the stylized first frame. Returns
+        the path to a PNG written to the outputs dir so the accepted image (and the
+        downstream /restyle read of it) lives in an app-owned location.
+        """
+        video_file = validate_source_video_path(req.video_path)
+
+        cap = self._video_processor.open_video(str(video_file))
+        try:
+            frame = self._video_processor.read_frame(cap, frame_idx=0)
+        finally:
+            self._video_processor.release(cap)
+
+        if frame is None:
+            raise HTTPError(400, f"Could not read frame 0 from video: {req.video_path}")
+
+        img_bytes = self._video_processor.encode_frame_jpeg(frame, quality=92)
+        out_path = self.config.outputs_dir / f"restyle_first_frame_{uuid.uuid4().hex[:8]}.jpg"
+        out_path.write_bytes(img_bytes)
+        logger.info("Extracted first frame to %s", out_path)
+        return ExtractFirstFrameResponse(image_path=str(out_path))

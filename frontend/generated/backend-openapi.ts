@@ -803,6 +803,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/restyle/extract-first-frame": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Route Extract First Frame */
+        post: operations["route_extract_first_frame_api_restyle_extract_first_frame_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/retake": {
         parameters: {
             query?: never;
@@ -1186,6 +1203,29 @@ export interface components {
             resolution?: components["schemas"]["TargetResolution"] | null;
             /** Video Path */
             video_path: string;
+        };
+        /**
+         * ExtractFirstFrameRequest
+         * @description Extract a source video's first frame to an image file path.
+         *
+         *     Drives the first half of the restyle workflow: drop a video -> the app
+         *     extracts its first frame, the user restyles that still (Z-Image edit / remote
+         *     fallbacks), confirms it, then the accepted image is passed to /restyle as
+         *     stylized_first_frame. Extraction on the backend guarantees both steps share the
+         *     same source video and that the frame lands in an app-owned path (not a browser
+         *     blob URL) that the downstream /restyle can read.
+         */
+        ExtractFirstFrameRequest: {
+            /** Video Path */
+            video_path: string;
+        };
+        /**
+         * ExtractFirstFrameResponse
+         * @description Path to the extracted first frame image (PNG).
+         */
+        ExtractFirstFrameResponse: {
+            /** Imagepath */
+            imagePath: string;
         };
         /** GenerateImageCancelledResponse */
         GenerateImageCancelledResponse: {
@@ -4341,6 +4381,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RestyleVideoResponse"] | components["schemas"]["RestyleCancelledResponse"];
+                };
+            };
+            /** @description Client Error */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+            /** @description Server Error */
+            "5XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPErrorResponse"];
+                };
+            };
+        };
+    };
+    route_extract_first_frame_api_restyle_extract_first_frame_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtractFirstFrameRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtractFirstFrameResponse"];
                 };
             };
             /** @description Client Error */

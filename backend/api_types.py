@@ -607,6 +607,30 @@ class RestyleRequest(BaseModel):
     cfg_scale: float = 5.0
 
 
+class ExtractFirstFrameRequest(BaseModel):
+    """Extract a source video's first frame to an image file path.
+
+    Drives the first half of the restyle workflow: drop a video -> the app
+    extracts its first frame, the user restyles that still (Z-Image edit / remote
+    fallbacks), confirms it, then the accepted image is passed to /restyle as
+    stylized_first_frame. Extraction on the backend guarantees both steps share the
+    same source video and that the frame lands in an app-owned path (not a browser
+    blob URL) that the downstream /restyle can read.
+    """
+
+    model_config = ConfigDict(strict=True)
+
+    video_path: str
+
+
+class ExtractFirstFrameResponse(BaseModel):
+    """Path to the extracted first frame image (PNG)."""
+
+    model_config = ConfigDict(alias_generator=_to_camel_case_alias, populate_by_name=True)
+
+    image_path: str
+
+
 ExtendMode: TypeAlias = Literal["start", "end"]
 
 

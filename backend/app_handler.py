@@ -246,6 +246,7 @@ class AppHandler:
             generation_handler=self.generation,
             gpu_info=gpu_info,
             local_idv2v=LocalIdV2vPipeline(repo_root=_repo_root()),
+            video_processor=video_processor,
         )
 
         self.extend = ExtendHandler(

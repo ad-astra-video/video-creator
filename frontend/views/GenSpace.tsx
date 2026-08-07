@@ -346,6 +346,7 @@ function formatSeconds(seconds: number): string {
 const DEFAULT_LORA_SCALE = 1.0
 const IMAGE_STEPS_GENERATE = 4
 const IMAGE_STEPS_EDIT = 8
+const DEFAULT_RESTYLE_PROMPT = 'restyle this video'
 
 // Multi-select LoRA picker with a per-LoRA strength slider.
 function LoRAPicker({
@@ -2919,6 +2920,13 @@ export function GenSpace() {
             processingStatus={restyleStatus}
             enforceApiConstraints={!isLocalMode}
             onChange={setRestyleInput}
+            onAccept={() => {
+              // The accepted stylized first frame is the real style signal; prefill
+              // the default restyle prompt (editable — the backend strips it if left
+              // unchanged) once the user confirms a stylized frame.
+              setPrompt(DEFAULT_RESTYLE_PROMPT)
+              setLastPrompt(DEFAULT_RESTYLE_PROMPT)
+            }}
           />
         </div>
       )}
