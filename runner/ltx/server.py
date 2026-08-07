@@ -1,4 +1,9 @@
-"""HTTP server with Livepeer Orchestrator registration."""
+"""LTX worker server — serves /video-creator/v1/* + token-gated /load /evict
+
+Pure internal worker behind the live-runner edge. Does NOT register with the
+Orchestrator (that is live-runner's job); it only serves the inference surface
+and the worker control plane over the Docker network.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -14,11 +19,6 @@ import uuid
 import torch
 from aiohttp import web
 
-from livepeer_gateway.live_runner import (
-    LiveRunnerGPU,
-    register_runner,
-)
-
 from runner.ltx import enhance_forward
 from runner.ltx.config import (
     ENHANCE_FORWARD_API_KEY,
@@ -33,12 +33,7 @@ from runner.ltx.config import (
     GPU_VRAM_GB,
     HOST,
     MODEL_CHECKPOINT,
-    ORCHESTRATOR_SECRET,
-    ORCHESTRATOR_URL,
     PORT,
-    PRICE,
-    PRICE_UNIT,
-    RUNNER_URL,
     TEXT_ENCODER_ROOT,
     UPSCALER_PATH,
     WARMUP,
@@ -703,7 +698,7 @@ def _warn_if_low_host_ram() -> None:
 
 
 async def on_startup(_app: web.Application) -> None:
-    global engine, registration, ready, gpu_profile
+    global engine, ready, gpu_profile
     _warn_if_low_host_ram()
 
     # Detect GPU and build the VRAM-aware profile (4090 = streaming/24GB,
@@ -715,23 +710,8 @@ async def on_startup(_app: web.Application) -> None:
             "Set GPU_VRAM_GB to bypass.",
             GPU_DEVICE, gpu_profile.vram_gb, 15,
         )
-
-    # Register with orchestrator
-    gpu = LiveRunnerGPU(name=gpu_profile.gpu_name, vram_mb=int(gpu_profile.vram_gb * 1024))
-    logger.info("GPU: %s (%.1f GB VRAM, mode=%s)", gpu.name, gpu_profile.vram_gb, gpu_profile.mode)
-    reg = await register_runner(
-        ORCHESTRATOR_URL,
-        secret=ORCHESTRATOR_SECRET,
-        runner_url=RUNNER_URL,
-        app=APP_ID,
-        mode="single-shot",
-        price=PRICE,
-        unit=PRICE_UNIT,
-        gpu=gpu,
-    )
-    registration = reg
-    await reg.start()
-    logger.info("Registered runner %s with %s", reg.runner_id, ORCHESTRATOR_URL)
+    logger.info("GPU: %s (%.1f GB VRAM, mode=%s)",
+                gpu_profile.gpu_name, gpu_profile.vram_gb, gpu_profile.mode)
 
     # Load inference engine. Prompt enhancement may run on a separate GPU
     # (ENHANCE_GPU_DEVICE); default to the video pipeline's GPU when unset.
@@ -784,10 +764,8 @@ async def on_startup(_app: web.Application) -> None:
 
 
 async def on_cleanup(_app: web.Application) -> None:
-    global registration
-    if registration:
-        await registration.close()
-        logger.info("Runner unregistered")
+    # Nothing to unregister: this is a pure worker behind live-runner.
+    pass
 
 
 # ── App factory ──────────────────────────────────────────
