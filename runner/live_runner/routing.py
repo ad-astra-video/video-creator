@@ -63,10 +63,19 @@ async def proxy(
     # yields to the loop) — no thread executor needed for the network I/O.
     headers = {"X-Worker-Token": token}
     async with session.post(url, json=body, headers=headers) as resp:
-        text = await resp.text()
-        ctype = resp.headers.get("Content-Type", "application/json")
+        # Read raw bytes so we relay the body byte-for-byte (the worker's image
+        # results are base64 JSON, but future workers may return binary media).
+        body_bytes = await resp.read()
+        # aiohttp parses the upstream Content-Type into media type + charset.
+        # Passing the raw header into web.Response(content_type=...) explodes
+        # with "charset must not be in content_type argument" when the worker
+        # sends e.g. "application/json; charset=utf-8", so use the split parts.
+        content_type = resp.content_type or "application/json"
+        charset = resp.charset
         if resp.status >= 400:
-            logger.error("Worker %s/%s -> %s: %s", worker, endpoint, resp.status, text[:500])
-            return web.Response(status=502, text=text, content_type="application/json")
-        return web.Response(status=resp.status, body=text.encode(),
-                            content_type=ctype, charset=None)
+            text = body_bytes[:500].decode(charset or "utf-8", "replace")
+            logger.error("Worker %s/%s -> %s: %s", worker, endpoint, resp.status, text)
+            return web.Response(status=502, text=text,
+                                content_type="application/json", charset="utf-8")
+        return web.Response(status=resp.status, body=body_bytes,
+                            content_type=content_type, charset=charset)
