@@ -94,6 +94,32 @@ cd /srv/video-creator/docker
 docker compose -f docker-compose.video-creator.yml up -d
 ```
 
+**Or** make the `.env` load an explicit first-class citizen via an `env_file:`
+directive on the services, so `.env` is read regardless of project-directory
+resolution:
+
+```yaml
+services:
+  ltx-worker:
+    # ...image/volumes/etc...
+    env_file:
+      - .env        # variables here flow INTO the container's environment
+```
+
+> **Important distinction:** `env_file:` injects the listed variables into the
+> container's environment at runtime. It does **not** feed Compose's
+> `${MODELS_DIR}` interpolation in the YAML itself — interpolation is only fed by
+> the shell, `--env-file`, or the project-directory `.env`. So combining
+> `env_file:` with `${MODELS_DIR:-/models}` in `volumes:` still needs Compose to
+> see `MODELS_DIR` via `--env-file` (or the project-directory `.env`) for the
+> volume source to resolve. If you want `env_file:` to be your only mechanism,
+> the volume line must use the literal host path instead of `${MODELS_DIR}`:
+>
+> ```yaml
+> volumes:
+>   - /srv/video-creator/models:/models   # literal, no interpolation needed
+> ```
+
 **Or** point the project directory back at your cwd:
 
 ```bash
