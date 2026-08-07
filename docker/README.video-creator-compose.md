@@ -41,6 +41,86 @@ docker compose -f docker/docker-compose.video-creator.yml \
 For production point `ORCHESTRATOR_URL` / `ORCHESTRATOR_SECRET` at your real
 orchestrator (the `orchestrator` profile service is then unused).
 
+## Notes on MODELS_DIR and the .env gotcha
+
+`MODELS_DIR` controls where the stack bind-mounts your model tree. The deploy
+compose uses `- ${MODELS_DIR:-/models}:/models` — the **host** side defaults to
+`/models`, which is almost never where your models actually live (e.g. they are
+often under `/srv/video-creator/models`). If that default wins, workers mount an
+empty/wrong tree and crash at warmup with:
+
+    FileNotFoundError: No files matching pattern 'tokenizer.model' found under /models/gemma
+
+(the ltx-worker loads its `gemma/` text encoder from `TEXT_ENCODER_ROOT`,
+default `/models/gemma`, so a bad mount surfaces there first).
+
+### Why a plain `.env` may silently not apply
+
+Docker Compose only reads `.env` from the **project directory**, and the project
+directory is resolved in this order (see the official *Interpolation* docs):
+
+1. `--project-directory <dir>` if set
+2. **the directory of the first compose file passed with `-f`**
+3. otherwise your shell's current working directory
+
+So running:
+
+```bash
+cd /srv/video-creator
+docker compose -f docker/docker-compose.video-creator.yml up
+```
+
+with `.env` at `/srv/video-creator/.env` does **NOT** pick it up: because `-f`
+points into `docker/`, the project directory becomes `/srv/video-creator/docker/`
+and Compose looks for `.env` at `/srv/video-creator/docker/.env` — which doesn't
+exist. `MODELS_DIR` then falls back to `/models`, and you get the crash above.
+
+### Reliable launch (pick one)
+
+**Preferred — pass `--env-file` explicitly** (no directory guessing):
+
+```bash
+export WORKER_TOKEN="$(openssl rand -hex 16)"
+docker compose --env-file /srv/video-creator/.env \
+  -f docker/docker-compose.video-creator.yml up -d
+```
+
+**Or** keep `.env` next to the compose file so the default lookup finds it:
+
+```bash
+cp /srv/video-creator/.env /srv/video-creator/docker/.env
+export WORKER_TOKEN="$(openssl rand -hex 16)"
+cd /srv/video-creator/docker
+docker compose -f docker-compose.video-creator.yml up -d
+```
+
+**Or** point the project directory back at your cwd:
+
+```bash
+export WORKER_TOKEN="$(openssl rand -hex 16)"
+docker compose --project-directory /srv/video-creator \
+  -f docker/docker-compose.video-creator.yml up -d
+```
+
+### Verify before recreating
+
+Always confirm `MODELS_DIR` resolved to the real tree before `up`:
+
+```bash
+docker compose --env-file /srv/video-creator/.env \
+  -f docker/docker-compose.video-creator.yml config \
+  | grep -A3 -i "ltx-worker" | grep -i source
+```
+
+This must print `source: /srv/video-creator/models` (or wherever your models
+live), not `/models`. Then bring it up; the ltx-worker should clear warmup and
+report `Inference engine ready on cuda:0` instead of the `tokenizer.model`
+FileNotFoundError.
+
+**Simplest of all:** hardcode the host path in the compose default
+(`- ${MODELS_DIR:-/srv/video-creator/models}:/models`). It is deterministic on a
+single box and removes the `.env` dependency entirely.
+
 ## Images
 
 | Service        | Dockerfile                        | Entry                    |
